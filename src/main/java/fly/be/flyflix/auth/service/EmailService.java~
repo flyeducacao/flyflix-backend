@@ -1,7 +1,0 @@
-package fly.be.flyflix.auth.service;
-
-import jakarta.mail.MessagingException;
-
-public interface EmailService {
-    String sendEmail(String destinationEmailAdress, String subject, String body) throws MessagingException;
-}
