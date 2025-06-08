@@ -1,32 +1,25 @@
-# Usar uma imagem base com Maven e JDK
+# Etapa 1: build com Maven
 FROM maven:3.8.4-openjdk-17-slim AS builder
 
-# Definir o diretório de trabalho
 WORKDIR /app
 
-# Copiar o arquivo pom.xml e o restante dos arquivos do projeto
+# Copiar o POM e baixar dependências antes do código (cache otimizado)
 COPY pom.xml .
-
-# Baixar as dependências do Maven (isso otimiza o processo de build)
 RUN mvn dependency:go-offline
 
-# Copiar o restante do código para o container
+# Copiar o código e empacotar a aplicação
 COPY src ./src
-
-# Executar o build do Maven para gerar o arquivo JAR
 RUN mvn clean package -DskipTests -Dfile.encoding=UTF-8
 
-# Usar uma imagem base do OpenJDK para rodar a aplicação
+# Etapa 2: imagem final, apenas com o JAR
 FROM openjdk:17-jdk-slim
 
-# Definir o diretório de trabalho no container
 WORKDIR /app
 
-# Copiar o JAR gerado pelo Maven (do estágio anterior) para o container
-COPY --from=builder /app/target/flyflix-0.0.1-SNAPSHOT.jar app.jar
+# Copiar o JAR gerado na etapa anterior
+COPY --from=builder /app/target/app.jar app.jar
 
-# Expor a porta 8080
+
 EXPOSE 8080
 
-# Comando para rodar a aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]
