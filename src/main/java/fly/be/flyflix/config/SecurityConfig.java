@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,18 +44,33 @@ import java.util.Base64;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    @Value("${jwt.public.key}")
-    private Resource publicKeyResource;
+    @Value("${jwt.public.key:}")
+    private String publicKeyPathOrContent;
 
-    @Value("${jwt.private.key}")
-    private Resource privateKeyResource;
+    @Value("${jwt.private.key:}")
+    private String privateKeyPathOrContent;
+
+    private boolean isPEMContent(String value) {
+        return value.contains("BEGIN");
+    }
 
     @Bean
     public RSAPublicKey rsaPublicKey() throws Exception {
-        String key = new String(publicKeyResource.getInputStream().readAllBytes())
+        String key;
+
+        if (isPEMContent(publicKeyPathOrContent)) {
+            key = publicKeyPathOrContent;
+        } else {
+            Resource resource = new ClassPathResource(publicKeyPathOrContent.replace("classpath:", ""));
+            key = new String(resource.getInputStream().readAllBytes());
+        }
+
+        key = key
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s", "");
+                .replaceAll("\\\\n", "")  // se vier com \n
+                .replaceAll("\\s", "");   // remove espaços e quebras reais
+
         byte[] decoded = Base64.getDecoder().decode(key);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
         return (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(spec);
@@ -62,14 +78,29 @@ public class SecurityConfig {
 
     @Bean
     public RSAPrivateKey rsaPrivateKey() throws Exception {
-        String key = new String(privateKeyResource.getInputStream().readAllBytes())
+        String key;
+
+        if (isPEMContent(privateKeyPathOrContent)) {
+            key = privateKeyPathOrContent;
+        } else {
+            Resource resource = new ClassPathResource(privateKeyPathOrContent.replace("classpath:", ""));
+            key = new String(resource.getInputStream().readAllBytes());
+        }
+
+        key = key
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\\\n", "")
                 .replaceAll("\\s", "");
+
         byte[] decoded = Base64.getDecoder().decode(key);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
         return (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
+
+
+
+
 
     @Bean
     public JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
