@@ -35,7 +35,7 @@ public class CursoController {
     private ModuloRepository moduloRepository;
     @Autowired
     private CursoService cursoService;
-    // endpoint para cadastro de cursos
+    // endpoint para cadastro de cursos novos
 
     @PostMapping
     public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados) {
