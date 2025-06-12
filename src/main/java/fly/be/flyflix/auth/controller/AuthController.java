@@ -35,7 +35,7 @@ public class AuthController {
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
     }
-
+//senhas
     @PostMapping("/esqueci-senha")
     public ResponseEntity<?> esqueciSenha(@RequestBody Map<String, String> body) {
         String email = body.get("email");
