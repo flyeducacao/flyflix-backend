@@ -2,13 +2,10 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.RedefinicaoSenhaDTO;
 import fly.be.flyflix.auth.controller.dto.RequisicaoResetSenhaDTO;
-import fly.be.flyflix.auth.entity.Admin;
-import fly.be.flyflix.auth.entity.Aluno;
-import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.entity.PasswordResetToken;
+import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
-import fly.be.flyflix.auth.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;

@@ -2,16 +2,17 @@ package fly.be.flyflix.auth.controller;
 
 import fly.be.flyflix.auth.controller.dto.LoginRequest;
 import fly.be.flyflix.auth.controller.dto.LoginResponse;
-import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
-import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.EmailService;
 import fly.be.flyflix.auth.service.TokenService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public class AuthController {
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
     }
-
+//senhas
     @PostMapping("/esqueci-senha")
     public ResponseEntity<?> esqueciSenha(@RequestBody Map<String, String> body) {
         String email = body.get("email");
@@ -49,8 +50,17 @@ public class AuthController {
         String token = tokenService.gerarTokenRedefinicaoSenha(usuario);
 
         String link = "http://localhost:3000/resetar-senha?token=" + token;
-        emailService.enviarEmail(email, "Redefinição de senha Flyflix",
-                "Use esse link para redefinir sua senha: " + link);
+        String conteudoHtml = """
+    <p>Olá,</p>
+    <p>Para redefinir sua senha, <a href="%s">clique aqui</a>.</p>
+    <p>Se você não solicitou essa alteração, ignore este e-mail.</p>
+""".formatted(link);
+
+        emailService.enviarEmail(email, "Redefinição de senha Flyflix", conteudoHtml);
+
+
+//        emailService.enviarEmail(email, "Redefinição de senha Flyflix",
+//                "Use esse link para redefinir sua senha: " + link);
 
         return ResponseEntity.ok("Email enviado para redefinição de senha.");
     }
