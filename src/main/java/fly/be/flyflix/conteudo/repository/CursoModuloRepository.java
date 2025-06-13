@@ -16,6 +16,8 @@ public interface CursoModuloRepository extends JpaRepository<CursoModulo, CursoM
 
     // Busca todos os CursoModulo de um curso, ordenados pela ordem
     List<CursoModulo> findByCurso_IdOrderByOrdemAsc(Long cursoId);
+    Optional<CursoModulo> findByCursoAndModulo(Curso curso, Modulo modulo);
+
 
 
     // Busca apenas os módulos de um curso (via CursoModulo), ordenados

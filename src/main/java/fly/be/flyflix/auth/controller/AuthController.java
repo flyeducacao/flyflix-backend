@@ -55,13 +55,7 @@ public class AuthController {
     <p>Para redefinir sua senha, <a href="%s">clique aqui</a>.</p>
     <p>Se você não solicitou essa alteração, ignore este e-mail.</p>
 """.formatted(link);
-
         emailService.enviarEmail(email, "Redefinição de senha Flyflix", conteudoHtml);
-
-
-//        emailService.enviarEmail(email, "Redefinição de senha Flyflix",
-//                "Use esse link para redefinir sua senha: " + link);
-
         return ResponseEntity.ok("Email enviado para redefinição de senha.");
     }
 

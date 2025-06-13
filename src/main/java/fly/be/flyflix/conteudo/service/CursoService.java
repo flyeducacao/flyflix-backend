@@ -113,15 +113,10 @@ public class CursoService {
                 .orElse(0) + 1;
 
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
-
-        // Relacionamento bidirecional
-        curso.getCursoModulos().add(cursoModulo);
-        modulo.getCursoModulos().add(cursoModulo);
-
-        // Só precisa salvar o lado "owner" da relação (CursoModulo)
         cursoModuloRepository.save(cursoModulo);
-
+        curso.getCursoModulos().forEach(cm -> cm.getModulo().getId()); // força load
         return curso;
     }
+
 
 }
