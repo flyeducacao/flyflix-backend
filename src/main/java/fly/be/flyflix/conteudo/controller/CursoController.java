@@ -138,7 +138,7 @@ public class CursoController {
 
         return ResponseEntity.ok().build();
     }
-
+//
     @DeleteMapping("/{idCurso}/modulos/{idModulo}")
     @Transactional
     public ResponseEntity<String> removerModuloDoCurso(@PathVariable Long idCurso, @PathVariable Long idModulo) {
