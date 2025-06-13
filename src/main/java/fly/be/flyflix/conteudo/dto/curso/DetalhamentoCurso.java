@@ -14,6 +14,7 @@ public record DetalhamentoCurso(
         String imagemCapa,
         List<DetalhamentoModulo> modulos
 ) {
+    // Para detalhes com módulos (GET /api/cursos/{id})
     public DetalhamentoCurso(Curso curso) {
         this(
                 curso.getId(),
@@ -21,11 +22,23 @@ public record DetalhamentoCurso(
                 curso.getDescricao(),
                 curso.getImagemCapa(),
                 curso.getCursoModulos().stream()
-                        .sorted(Comparator.comparing(CursoModulo::getOrdem)) // ordena pela ordem no curso
+                        .sorted(Comparator.comparing(CursoModulo::getOrdem))
                         .map(cm -> new DetalhamentoModulo(cm.getModulo()))
                         .toList()
         );
     }
+
+    // Para listagem sem módulos (GET /api/cursos)
+    public static DetalhamentoCurso semModulos(Curso curso) {
+        return new DetalhamentoCurso(
+                curso.getId(),
+                curso.getTitulo(),
+                curso.getDescricao(),
+                curso.getImagemCapa(),
+                null // ou List.of() para lista vazia
+        );
+    }
 }
+
 
 
