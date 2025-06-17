@@ -8,6 +8,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -41,8 +43,13 @@ public abstract class Usuario implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Column(name = "data_cadastro", columnDefinition = "DATE")
+    private LocalDate dataCadastro;
 
-        @Override
+
+
+
+    @Override
         public Collection<? extends GrantedAuthority> getAuthorities() {
             return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
         }
@@ -83,4 +90,12 @@ public abstract class Usuario implements UserDetails {
     public boolean isLoginCorrect(LoginRequest loginRequest, PasswordEncoder passwordEncoder) {
         return passwordEncoder.matches(loginRequest.senha(), this.senha);
     }
+    @PrePersist
+    public void prePersist() {
+        this.dataCadastro = LocalDate.now();
+        if (this.role == null) {
+            this.role = Role.ALUNO;
+        }
+    }
+
 }

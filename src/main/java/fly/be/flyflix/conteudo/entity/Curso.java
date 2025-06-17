@@ -1,5 +1,6 @@
 package fly.be.flyflix.conteudo.entity;
 
+import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -47,15 +48,18 @@ public class Curso {
     @Builder.Default
     private List<CursoModulo> cursoModulos = new ArrayList<>();
 
-    // Métodos de negócio usando CursoModulo
-    public void adicionarModulo(Modulo modulo, int ordem) {
-        CursoModulo cursoModulo = new CursoModulo(this, modulo, ordem);
-        cursoModulos.add(cursoModulo);
-        modulo.getCursoModulos().add(cursoModulo);
-    }
+//    // Métodos de negócio usando CursoModulo
+//    public void adicionarModulo(Modulo modulo, int ordem) {
+//        CursoModulo cursoModulo = new CursoModulo(this, modulo, ordem);
+//        cursoModulos.add(cursoModulo);
+//        modulo.getCursoModulos().add(cursoModulo);
+//    }
+//
+//    public void removerModulo(Modulo modulo) {
+//        cursoModulos.removeIf(cm -> cm.getModulo().equals(modulo));
+//        modulo.getCursoModulos().removeIf(cm -> cm.getCurso().equals(this));
+//    }
+    @ManyToMany(mappedBy = "cursos")
+    private Set<Aluno> alunos = new HashSet<>();
 
-    public void removerModulo(Modulo modulo) {
-        cursoModulos.removeIf(cm -> cm.getModulo().equals(modulo));
-        modulo.getCursoModulos().removeIf(cm -> cm.getCurso().equals(this));
-    }
 }

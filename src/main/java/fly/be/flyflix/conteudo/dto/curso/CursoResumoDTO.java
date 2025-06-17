@@ -13,7 +13,5 @@ import java.util.List;
 public class CursoResumoDTO {
     private Long id;
     private String titulo;
-    private String descricao;
-    private LocalDate dataPublicacao;
 
 }
