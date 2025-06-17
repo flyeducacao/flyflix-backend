@@ -1,4 +1,4 @@
-package fly.be.flyflix.auth.controller.dto;
+package fly.be.flyflix.auth.controller.dto.aluno;
 
 import fly.be.flyflix.auth.enums.PerfilAluno;
 import jakarta.validation.constraints.Email;

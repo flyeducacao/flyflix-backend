@@ -1,24 +1,29 @@
 package fly.be.flyflix.auth.service;
 
-import fly.be.flyflix.auth.controller.dto.CadastroAluno;
-import fly.be.flyflix.auth.controller.dto.aluno.AtualizarAlunoRequest;
+import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.enums.PerfilAluno;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
+import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.repository.CursoRepository;
+import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class AlunoService {
+    @Autowired
+    private CursoRepository cursoRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -57,7 +62,7 @@ public class AlunoService {
         String senhaTemp = UUID.randomUUID().toString().substring(0, 8);
         aluno.setSenha(passwordEncoder.encode(senhaTemp));
 
-        usuarioRepository.save(aluno);
+        alunoRepository.save(aluno);
 
         String assunto = "Sua senha temporária para FlyFlix";
         String corpo = String.format(
@@ -88,11 +93,9 @@ public class AlunoService {
                     return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));
                 })
                 .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("error", "Aluno não encontrado")
+                        Map.of("erro", "Aluno não encontrado")
                 ));
     }
-
-
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
         return alunoRepository.findById(id)
@@ -102,23 +105,100 @@ public class AlunoService {
                     return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
                 })
                 .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("error", "Aluno não encontrado")
+                        Map.of("erro", "Aluno não encontrado")
                 ));
     }
-
-
-
-
     public ResponseEntity<Map<String, Object>> obterAluno(long id) {
         return alunoRepository.findById(id)
-                .map(aluno -> ResponseEntity.ok(Map.<String, Object>of("aluno", aluno)))
+                .map(aluno -> {
+                    ObterAluno dto = new ObterAluno(aluno);
+                    return ResponseEntity.ok(Map.of("aluno", (Object) dto));
+                })
                 .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("error", "Aluno não encontrado")
+                        Map.of("erro", "Aluno não encontrado")
                 ));
     }
 
+    private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
+    public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
+        try {
+            logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
+            return alunoRepository.findAll(paginacao)
+                    .map(aluno -> new AlunoResumoDTO(aluno.getId(), aluno.getNome()));
+        } catch (Exception e) {
+            logger.error("Erro ao listar alunos", e);
+            throw e;
+        }
+    }
+    public List<AlunoResumoDTO> listarPorDataCadastro(LocalDate dataInicio, LocalDate dataFim) {
+        return alunoRepository.findByDataCadastroBetween(dataInicio, dataFim)
+                .stream()
+                .map(AlunoResumoDTO::new)
+                .toList();
+    }
+    @Transactional
+    public ResponseEntity<MatriculaResponseDTO> matricularAluno(MatricularAlunoRequest request) {
+        Optional<Aluno> alunoOpt = alunoRepository.findById(request.alunoId());
+        if (alunoOpt.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
 
-    public Page<Aluno> listarAlunos(Pageable paginacao) {
-        return alunoRepository.findAll(paginacao);
+        Aluno aluno = alunoOpt.get();
+
+        List<Curso> cursos = cursoRepository.findAllById(request.cursoIds());
+
+        if (cursos.size() != request.cursoIds().size()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        aluno.getCursos().addAll(cursos);
+        alunoRepository.save(aluno);
+
+        List<CursoResumoDTO> cursosResumo = aluno.getCursos()
+                .stream()
+                .map(curso -> new CursoResumoDTO(curso.getId(), curso.getTitulo()))
+                .toList();
+
+        MatriculaResponseDTO response = new MatriculaResponseDTO(
+                aluno.getId(),
+                aluno.getNome(),
+                cursosResumo
+        );
+
+        return ResponseEntity.ok(response);
+    }
+    @Transactional
+    public ResponseEntity<?> matricularAlunosEmLote(MatriculaEmLoteRequest request) {
+        List<Aluno> alunos = alunoRepository.findAllById(request.alunoIds());
+        Optional<Curso> cursoOpt = cursoRepository.findById(request.cursoId());
+
+        if (cursoOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Curso não encontrado"));
+        }
+
+        if (alunos.size() != request.alunoIds().size()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Algum aluno não foi encontrado"));
+        }
+
+        Curso curso = cursoOpt.get();
+        alunos.forEach(aluno -> aluno.getCursos().add(curso));
+        alunoRepository.saveAll(alunos);
+
+        return ResponseEntity.ok(Map.of("message", "Alunos matriculados com sucesso"));
+    }
+    @Transactional
+    public ResponseEntity<List<AlunoResumoDTO>> listarAlunosPorCurso(Long cursoId) {
+        Optional<Curso> cursoOpt = cursoRepository.findById(cursoId);
+
+        if (cursoOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
+
+        List<AlunoResumoDTO> alunos = cursoOpt.get().getAlunos()
+                .stream()
+                .map(aluno -> new AlunoResumoDTO(aluno.getId(), aluno.getNome()))
+                .toList();
+
+        return ResponseEntity.ok(alunos);
     }
 }

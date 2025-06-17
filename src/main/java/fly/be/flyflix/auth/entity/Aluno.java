@@ -1,11 +1,17 @@
 package fly.be.flyflix.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import fly.be.flyflix.auth.enums.PerfilAluno;
 import fly.be.flyflix.auth.enums.Role;
+import fly.be.flyflix.conteudo.entity.Curso;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -25,8 +31,15 @@ public class Aluno extends Usuario {
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    @Column(name = "curso_id")
-    private Long cursoId;
+    @ManyToMany
+    @JsonIgnoreProperties("alunos") // evita loop de serialização
+    @JsonIgnore
+    @JoinTable(
+            name = "aluno_curso",
+            joinColumns = @JoinColumn(name = "aluno_id"),
+            inverseJoinColumns = @JoinColumn(name = "curso_id")
+    )
+    private Set<Curso> cursos = new HashSet<>();
 
     public boolean inativar() {
         if (Boolean.TRUE.equals(this.ativo)) {
@@ -46,9 +59,7 @@ public class Aluno extends Usuario {
 
     @PrePersist
     public void prePersist() {
-        setRole(Role.ALUNO);
+        super.setRole(Role.ALUNO);
     }
-
-
 }
 
