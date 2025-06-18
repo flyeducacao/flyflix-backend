@@ -6,7 +6,9 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -40,7 +42,9 @@ public class Modulo {
     @OneToMany(mappedBy = "modulo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("ordem ASC")
     @Builder.Default
-    private List<Aula> aulas = new ArrayList<>();
+
+    private Set<Aula> aulas = new HashSet<>();
+
 
     // Métodos utilitários
     public void adicionarAula(Aula aula) {
