@@ -7,8 +7,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProgressoRepository extends JpaRepository<ProgressoAluno, Long> {
+
     List<ProgressoAluno> findByAlunoIdAndCursoId(Long alunoId, Long cursoId);
 
-    Optional<ProgressoAluno> findByAlunoIdAndAulaId(Long alunoId, Long aulaId);
+    Long countByAlunoIdAndCursoIdAndAssistidaTrue(Long alunoId, Long cursoId);
+
+
+
+    Optional<ProgressoAluno> findByAluno_IdAndAula_Id(Long alunoId, Long aulaId);
 }
+
 
