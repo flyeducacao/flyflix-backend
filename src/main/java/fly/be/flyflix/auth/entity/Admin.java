@@ -19,10 +19,5 @@ public class Admin extends Usuario {
 
     @Column(nullable = false)
     private Boolean ativo = true;
-
-    @PrePersist
-    public void prePersist() {
-        setRole(Role.ADMIN);
-    }
 }
 

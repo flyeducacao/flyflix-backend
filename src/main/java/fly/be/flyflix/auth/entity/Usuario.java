@@ -90,12 +90,4 @@ public abstract class Usuario implements UserDetails {
     public boolean isLoginCorrect(LoginRequest loginRequest, PasswordEncoder passwordEncoder) {
         return passwordEncoder.matches(loginRequest.senha(), this.senha);
     }
-    @PrePersist
-    public void prePersist() {
-        this.dataCadastro = LocalDate.now();
-        if (this.role == null) {
-            this.role = Role.ALUNO;
-        }
-    }
-
 }
