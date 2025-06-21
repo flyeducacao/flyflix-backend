@@ -3,6 +3,7 @@ package fly.be.flyflix.conteudo.controller;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
@@ -20,8 +21,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -94,8 +97,6 @@ public class CursoController {
         return ResponseEntity.noContent().build();
     }
 
-    // ✅ NOVO ENDPOINT: adicionar módulo a curso
-
     @PostMapping("/{cursoId}/modulos/{moduloId}")
     public ResponseEntity<?> adicionarModulo(@PathVariable Long cursoId, @PathVariable Long moduloId) {
         try {
@@ -138,7 +139,19 @@ public class CursoController {
 
         return ResponseEntity.ok().build();
     }
-//
+
+    @GetMapping("/{id}/modulos")
+    public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
+        cursoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Curso com id '%s' não encontrado".formatted(id)));
+
+        List<ModuloByListarPorCurso> resposta = moduloRepository.findByCursoId(id).stream()
+                .map(ModuloByListarPorCurso::by)
+                .toList();
+
+        return ResponseEntity.ok(resposta);
+    }
+
     @DeleteMapping("/{idCurso}/modulos/{idModulo}")
     @Transactional
     public ResponseEntity<String> removerModuloDoCurso(@PathVariable Long idCurso, @PathVariable Long idModulo) {
