@@ -61,10 +61,6 @@ public class TokenService {
                 .expiresAt(now.plusSeconds(expiresIn))
                 .claim("authorities", List.of("ROLE_" + usuario.getRole()));
 
-        if (usuario instanceof Aluno aluno) {
-            claimsBuilder.claim("allowedCategories", aluno.getPerfilAluno());
-        }
-
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claimsBuilder.build())).getTokenValue();
         return new LoginResponse(token, expiresIn);
     }

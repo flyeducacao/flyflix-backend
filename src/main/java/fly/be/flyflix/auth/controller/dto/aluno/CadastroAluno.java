@@ -1,6 +1,5 @@
 package fly.be.flyflix.auth.controller.dto.aluno;
 
-import fly.be.flyflix.auth.enums.PerfilAluno;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +22,5 @@ public record CadastroAluno(
 
         @NotNull(message = "Data de nascimento é obrigatória")
         @Past(message = "Data de nascimento inválida")
-        LocalDate dataNascimento,
-
-        PerfilAluno perfilAluno // Campo opcional, sem validação obrigatória
+        LocalDate dataNascimento
 ) {}

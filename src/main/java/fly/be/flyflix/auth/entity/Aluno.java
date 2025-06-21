@@ -2,7 +2,6 @@ package fly.be.flyflix.auth.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import fly.be.flyflix.auth.enums.PerfilAluno;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.ProgressoAluno;
 import jakarta.persistence.*;
@@ -24,10 +23,6 @@ public class Aluno extends Usuario {
 
     @Column(name = "data_nascimento", nullable = false)
     private LocalDate dataNascimento;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "perfil_aluno", nullable = false)
-    private PerfilAluno perfilAluno;
 
     @Column(nullable = false)
     private Boolean ativo = true;

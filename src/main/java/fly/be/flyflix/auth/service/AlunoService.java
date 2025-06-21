@@ -2,7 +2,6 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
-import fly.be.flyflix.auth.enums.PerfilAluno;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
@@ -57,9 +56,6 @@ public class AlunoService {
         aluno.setDataNascimento(dados.dataNascimento());
         aluno.setAtivo(true);
         aluno.setRole(Role.ALUNO);
-        // Define perfil padrão caso não venha do DTO
-        aluno.setPerfilAluno(dados.perfilAluno() != null ? dados.perfilAluno() : PerfilAluno.MULHERES_IN_TECH);
-
 
         String senhaTemp = UUID.randomUUID().toString().substring(0, 8);
         aluno.setSenha(passwordEncoder.encode(senhaTemp));
