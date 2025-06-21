@@ -124,7 +124,7 @@ public class AlunoService {
         try {
             logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
             return alunoRepository.findAll(paginacao)
-                    .map(aluno -> new AlunoResumoDTO(aluno.getId(), aluno.getNome()));
+                    .map(AlunoResumoDTO::new);
         } catch (Exception e) {
             logger.error("Erro ao listar alunos", e);
             throw e;
@@ -196,7 +196,7 @@ public class AlunoService {
 
         List<AlunoResumoDTO> alunos = cursoOpt.get().getAlunos()
                 .stream()
-                .map(aluno -> new AlunoResumoDTO(aluno.getId(), aluno.getNome()))
+                .map(AlunoResumoDTO::new)
                 .toList();
 
         return ResponseEntity.ok(alunos);
