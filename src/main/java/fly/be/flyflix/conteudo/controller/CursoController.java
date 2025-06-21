@@ -64,7 +64,6 @@ public class CursoController {
         if (optional.isEmpty()) return ResponseEntity.notFound().build();
 
         Curso curso = optional.get();
-        curso.getCursoModulos().forEach(cm -> cm.getModulo().getId()); // força load
 
         return ResponseEntity.ok(DetalhamentoCurso.by(curso));
     }
