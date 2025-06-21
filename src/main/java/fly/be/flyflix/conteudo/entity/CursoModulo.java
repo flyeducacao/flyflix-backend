@@ -15,12 +15,12 @@ public class CursoModulo {
     @EqualsAndHashCode.Include
     private CursoModuloId id = new CursoModuloId();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @MapsId("cursoId")
     @JoinColumn(name = "curso_id", nullable = false)
     private Curso curso;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @MapsId("moduloId")
     @JoinColumn(name = "modulo_id", nullable = false)
     private Modulo modulo;

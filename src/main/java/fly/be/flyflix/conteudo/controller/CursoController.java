@@ -43,7 +43,7 @@ public class CursoController {
             Curso curso = cursoService.cadastrarCurso(dados);
             return ResponseEntity
                     .created(URI.create("/api/cursos/" + curso.getId()))
-                    .body(new DetalhamentoCurso(curso));
+                    .body(DetalhamentoCurso.by(curso));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -51,7 +51,7 @@ public class CursoController {
 
     @GetMapping
     public Page<DetalhamentoCurso> listar(@PageableDefault(size = 10, sort = "titulo") Pageable paginacao) {
-        return cursoRepository.findAll(paginacao).map(DetalhamentoCurso::semModulos);
+        return cursoRepository.findAll(paginacao).map(DetalhamentoCurso::by);
     }
 
     @GetMapping("/{id}")
@@ -63,7 +63,7 @@ public class CursoController {
         Curso curso = optional.get();
         curso.getCursoModulos().forEach(cm -> cm.getModulo().getId()); // força load
 
-        return ResponseEntity.ok(new DetalhamentoCurso(curso));
+        return ResponseEntity.ok(DetalhamentoCurso.by(curso));
     }
 
 
@@ -79,7 +79,7 @@ public class CursoController {
             curso.setDescricao(dados.descricao());
             curso.setImagemCapa(dados.imagemCapa());
 
-            return ResponseEntity.ok(new DetalhamentoCurso(curso));
+            return ResponseEntity.ok(DetalhamentoCurso.by(curso));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -100,7 +100,7 @@ public class CursoController {
     public ResponseEntity<?> adicionarModulo(@PathVariable Long cursoId, @PathVariable Long moduloId) {
         try {
             Curso cursoAtualizado = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
-            return ResponseEntity.ok(new DetalhamentoCurso(cursoAtualizado));
+            return ResponseEntity.ok(DetalhamentoCurso.by(cursoAtualizado));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
