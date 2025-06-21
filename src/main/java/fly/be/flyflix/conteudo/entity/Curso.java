@@ -45,7 +45,7 @@ public class Curso {
 
     private String imagemCapa;
 
-    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private Set<CursoModulo> cursoModulos = new HashSet<>();
 
