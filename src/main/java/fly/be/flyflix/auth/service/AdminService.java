@@ -4,6 +4,7 @@ import fly.be.flyflix.auth.controller.dto.admin.AtualizarAdminRequest;
 import fly.be.flyflix.auth.controller.dto.admin.CadastroAdmin;
 import fly.be.flyflix.auth.controller.dto.admin.DadosAdminResponse;
 import fly.be.flyflix.auth.entity.Admin;
+import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,7 @@ public class AdminService {
         admin.setEmail(dados.email());
         admin.setCpf(dados.cpf());
         admin.setAtivo(true);
+        admin.setRole(Role.ADMIN);
 
         String senhaTemp = UUID.randomUUID().toString().substring(0, 8);
         admin.setSenha(passwordEncoder.encode(senhaTemp));
