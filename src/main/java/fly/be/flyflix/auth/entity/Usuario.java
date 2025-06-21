@@ -3,6 +3,8 @@ import fly.be.flyflix.auth.controller.dto.LoginRequest;
 import fly.be.flyflix.auth.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SourceType;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -44,6 +46,7 @@ public abstract class Usuario implements UserDetails {
     private Role role;
 
     @Column(name = "data_cadastro", columnDefinition = "DATE")
+    @CreationTimestamp(source = SourceType.DB)
     private LocalDate dataCadastro;
 
 
