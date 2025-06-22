@@ -45,8 +45,8 @@ public class CursoService {
 
             Curso curso = Curso.builder()
                     .titulo(dados.titulo())
-                    .descricao(dados.descricao())
-                    .imagemCapa(dados.imagemCapa())
+                    //.descricao(dados.descricao())
+                    //.imagemCapa(dados.imagemCapa())
                     .dataPublicacao(LocalDate.now())
                     .autor(autor)
                     .build();
@@ -80,8 +80,8 @@ public class CursoService {
                 .orElseThrow(() -> new RuntimeException("Curso não encontrado"));
 
         if (dados.titulo() != null) curso.setTitulo(dados.titulo());
-        if (dados.descricao() != null) curso.setDescricao(dados.descricao());
-        if (dados.imagemCapa() != null) curso.setImagemCapa(dados.imagemCapa());
+        //if (dados.descricao() != null) curso.setDescricao(dados.descricao());
+        //if (dados.imagemCapa() != null) curso.setImagemCapa(dados.imagemCapa());
 
         if (dados.autorId() != null) {
             Usuario novoAutor = usuarioRepository.findById(dados.autorId())

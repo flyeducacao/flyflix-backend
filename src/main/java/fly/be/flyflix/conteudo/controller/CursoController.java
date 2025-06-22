@@ -68,8 +68,8 @@ public class CursoController {
         try {
             Curso curso = optional.get();
             curso.setTitulo(dados.titulo());
-            curso.setDescricao(dados.descricao());
-            curso.setImagemCapa(dados.imagemCapa());
+            //curso.setDescricao(dados.descricao());
+            // curso.setImagemCapa(dados.imagemCapa());
 
             return ResponseEntity.ok(new DetalhamentoCurso(curso));
         } catch (Exception e) {
