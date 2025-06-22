@@ -18,8 +18,8 @@ record UsuarioByDetalhamentoCurso(Long id, String nome, String email) {
 public record DetalhamentoCurso(
         Long id,
         String titulo,
-        String descricao,
-        String imagemCapa,
+        //String descricao,
+        //String imagemCapa,
         LocalDate dataPublicacao,
         UsuarioByDetalhamentoCurso autor
 ) {
@@ -30,8 +30,8 @@ public record DetalhamentoCurso(
         return new DetalhamentoCurso(
                 curso.getId(),
                 curso.getTitulo(),
-                curso.getDescricao(),
-                curso.getImagemCapa(),
+                //curso.getDescricao(),
+                //curso.getImagemCapa(),
                 curso.getDataPublicacao(),
                 autor
         );
