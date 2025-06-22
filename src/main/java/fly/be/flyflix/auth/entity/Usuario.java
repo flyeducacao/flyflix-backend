@@ -48,6 +48,12 @@ public abstract class Usuario implements UserDetails {
     @CreationTimestamp(source = SourceType.DB)
     private LocalDate dataCadastro;
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "foto_perfil")
+    private byte[] fotoPerfil;
+
+
 
 
 
