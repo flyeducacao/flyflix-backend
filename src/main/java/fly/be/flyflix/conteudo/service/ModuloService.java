@@ -4,8 +4,8 @@ import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,8 +28,7 @@ public class ModuloService {
 
     @Transactional
     public Modulo atualizar(AtualizacaoModulo dados) {
-        Modulo modulo = moduloRepository.findById(dados.id())
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = findByIdOrThrowsNotFoundException(dados.id());
 
         modulo.setTitulo(dados.titulo());
         // A ordem será atualizada no CursoModulo
@@ -47,8 +46,12 @@ public class ModuloService {
     }
 
     public DetalhamentoModulo detalhar(Long id) {
-        Modulo modulo = moduloRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = findByIdOrThrowsNotFoundException(id);
         return new DetalhamentoModulo(modulo);
+    }
+
+    public Modulo findByIdOrThrowsNotFoundException(Long id) {
+        return moduloRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Módulo com id '%s' não encontrado".formatted(id)));
     }
 }

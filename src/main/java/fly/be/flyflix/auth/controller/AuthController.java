@@ -6,6 +6,7 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.EmailService;
 import fly.be.flyflix.auth.service.TokenService;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,12 +42,10 @@ public class AuthController {
     public ResponseEntity<?> esqueciSenha(@RequestBody Map<String, String> body) {
         String email = body.get("email");
 
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-        if (usuarioOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Email não cadastrado.");
-        }
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("Email não cadastrado."));
 
-        Usuario usuario = usuarioOpt.get();
+
         String token = tokenService.gerarTokenRedefinicaoSenha(usuario);
 
         String link = "http://localhost:3000/resetar-senha?token=" + token;
@@ -56,6 +55,7 @@ public class AuthController {
     <p>Se você não solicitou essa alteração, ignore este e-mail.</p>
 """.formatted(link);
         emailService.enviarEmail(email, "Redefinição de senha Flyflix", conteudoHtml);
+
         return ResponseEntity.ok("Email enviado para redefinição de senha.");
     }
 
@@ -68,7 +68,7 @@ public class AuthController {
 
         // Validação da nova senha
         if (!isSenhaValida(novaSenha)) {
-            return ResponseEntity.badRequest().body("A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um caractere especial.");
+            throw new BadRequestException("A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um caractere especial.");
         }
 
         try {
@@ -76,9 +76,10 @@ public class AuthController {
             usuario.setSenha(passwordEncoder.encode(novaSenha));
             usuarioRepository.save(usuario);
             tokenService.invalidarToken(token);
+
             return ResponseEntity.ok("Senha alterada com sucesso.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            throw new BadRequestException(e.getMessage());
         }
     }
 

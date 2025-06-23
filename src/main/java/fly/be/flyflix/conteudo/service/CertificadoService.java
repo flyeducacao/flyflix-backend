@@ -1,16 +1,14 @@
 package fly.be.flyflix.conteudo.service;
 
-import fly.be.flyflix.auth.entity.Usuario;
-import fly.be.flyflix.auth.repository.AlunoRepository;
+import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.auth.service.AlunoService;
 import fly.be.flyflix.conteudo.dto.aula.AulaResumoDTO;
 import fly.be.flyflix.conteudo.dto.certificado.CertificadoElegibilidadeDTO;
-import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.ProgressoAluno;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
 import fly.be.flyflix.conteudo.repository.ProgressoRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,23 +24,21 @@ public class CertificadoService {
     private final AulaRepository aulaRepository;
 
     private final ProgressoRepository progressoRepository;
-    private final CursoRepository cursoRepository;
-    private final AlunoRepository alunoRepository;
     private final PdfGenerator pdfGenerator;
     private static final Logger logger = LoggerFactory.getLogger(ProgressoService.class);
+    private final CursoService cursoService;
+    private final AlunoService alunoService;
 
     public CertificadoService(
-
             AulaRepository aulaRepository, ProgressoRepository progressoRepository,
-            CursoRepository cursoRepository,
-            AlunoRepository alunoRepository,
-            PdfGenerator pdfGenerator
+            PdfGenerator pdfGenerator,
+            CursoService cursoService, AlunoService alunoService
     ) {
         this.aulaRepository = aulaRepository;
         this.progressoRepository = progressoRepository;
-        this.cursoRepository = cursoRepository;
-        this.alunoRepository = alunoRepository;
         this.pdfGenerator = pdfGenerator;
+        this.cursoService = cursoService;
+        this.alunoService = alunoService;
     }
 
     public CertificadoElegibilidadeDTO verificarElegibilidade(Long alunoId, Long cursoId) {
@@ -83,15 +79,15 @@ public class CertificadoService {
 
 
     public String buscarNomeAluno(Long alunoId) {
-        return alunoRepository.findById(alunoId)
-                .map(Usuario::getNome)
-                .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado"));
+        Aluno aluno = alunoService.findByIdOrThrowsNotFoundException(alunoId);
+
+        return aluno.getNome();
     }
 
     public String buscarTituloCurso(Long cursoId) {
-        return cursoRepository.findById(cursoId)
-                .map(Curso::getTitulo)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
+
+        return curso.getTitulo();
     }
 
     public byte[] gerarCertificado(Long alunoId, Long cursoId) {
@@ -104,7 +100,7 @@ public class CertificadoService {
 
         CertificadoElegibilidadeDTO elegibilidade = verificarElegibilidade(alunoId, cursoId);
         if (!elegibilidade.isElegivel()) {
-            throw new IllegalStateException("Aluno não qualificado para certificado: " + elegibilidade.getMotivo());
+            throw new BadRequestException("Aluno não qualificado para certificado: " + elegibilidade.getMotivo());
         }
 
         return pdfGenerator.gerar(

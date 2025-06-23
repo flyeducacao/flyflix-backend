@@ -4,9 +4,8 @@ import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
-import fly.be.flyflix.conteudo.repository.ModuloRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,7 +19,7 @@ public class AulaService {
     private AulaRepository aulaRepository;
 
     @Autowired
-    private ModuloRepository moduloRepository;
+    private ModuloService moduloService;
 
     @Transactional
     public Aula cadastrar(CadastroAula dados) {
@@ -32,9 +31,9 @@ public class AulaService {
         aula.setLinkConteudo(dados.linkConteudo());
 
         // Se quiser permitir aula sem módulo, pode fazer assim:
-        if (dados.moduloId() != null) {
-            Modulo modulo = moduloRepository.findById(dados.moduloId())
-                    .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Long moduloId = dados.moduloId();
+        if (moduloId != null) {
+            Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
             aula.setModulo(modulo);
         }
 
@@ -47,8 +46,7 @@ public class AulaService {
 
     @Transactional
     public Aula atualizar(Long id, DadosAtualizacaoAula dados) {
-        Aula aula = aulaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Aula não encontrada"));
+        Aula aula = findByIdOrThrowsNotFoundException(id);
 
         aula.setTitulo(dados.titulo());
         aula.setTipo(dados.tipo());
@@ -56,9 +54,9 @@ public class AulaService {
         aula.setDuracaoEstimada(dados.duracaoEstimada());
         aula.setLinkConteudo(dados.linkConteudo());
 
-        if (dados.moduloId() != null) {
-            Modulo modulo = moduloRepository.findById(dados.moduloId())
-                    .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Long moduloId = dados.moduloId();
+        if (moduloId != null) {
+            Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
             aula.setModulo(modulo);
         } else {
             aula.setModulo(null); // desvincular da aula, se quiser
@@ -69,11 +67,15 @@ public class AulaService {
 
     @Transactional
     public void remover(Long id) {
-        aulaRepository.deleteById(id);
+        aulaRepository.delete(findByIdOrThrowsNotFoundException(id));
     }
 
     public Aula detalhar(Long id) {
+        return findByIdOrThrowsNotFoundException(id);
+    }
+
+    public Aula findByIdOrThrowsNotFoundException(Long id) {
         return aulaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Aula não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Aula com id '%s' não encontrado".formatted(id)));
     }
 }

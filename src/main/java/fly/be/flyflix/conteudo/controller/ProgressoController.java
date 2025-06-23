@@ -19,6 +19,7 @@ public class ProgressoController {
         progressoService.marcarComoAssistida(dto.getAlunoId(), dto.getAulaId(), dto.getCursoId());
         return ResponseEntity.ok("Progresso registrado com sucesso.");
     }
+
     @GetMapping("/status")
     public ResponseEntity<ProgressoResponseDTO> obterProgresso(
             @RequestParam Long alunoId,
@@ -26,8 +27,5 @@ public class ProgressoController {
         ProgressoResponseDTO progresso = progressoService.obterProgresso(alunoId, cursoId);
         return ResponseEntity.ok(progresso);
     }
-
-
-
 }
 
