@@ -41,6 +41,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.List;
 
 @Configuration
 @Getter
@@ -141,9 +142,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.addAllowedOrigin("*");
-                    config.addAllowedMethod("*");
-                    config.addAllowedHeader("*");
+                    config.setAllowedOrigins(List.of("https://flyflix.onrender.com", "http://localhost:3000", "http://127.0.0.1:5173"));
+                    config.setAllowedMethods(List.of("*"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
                     return config;
                 }))
                 .authorizeHttpRequests(authorize -> authorize
