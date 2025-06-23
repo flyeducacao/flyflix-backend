@@ -7,7 +7,9 @@ import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
+import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,18 +26,16 @@ import java.util.*;
 public class AlunoService {
     @Autowired
     private CursoRepository cursoRepository;
-
     @Autowired
     private UsuarioRepository usuarioRepository;
-
     @Autowired
     private AlunoRepository alunoRepository;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private CursoService cursoService;
 
     public ResponseEntity<Map<String, Object>> cadastrarAluno(CadastroAluno dados) {
         Map<String, Object> response = new HashMap<>();
@@ -81,40 +81,28 @@ public class AlunoService {
     }
 
     public ResponseEntity<Map<String, Object>> atualizarAluno(AtualizarAlunoRequest dados) {
-        return alunoRepository.findById(dados.id())
-                .map(aluno -> {
-                    aluno.setNome(dados.nome());
-                    aluno.setEmail(dados.email());
-                    aluno.setDataNascimento(dados.dataNascimento());
-                    aluno.setAtivo(dados.ativo());
-                    alunoRepository.save(aluno);
-                    return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));
-                })
-                .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("erro", "Aluno não encontrado")
-                ));
+        Aluno alunoToUpdate = findByIdOrThrowsNotFoundException(dados.id());
+        alunoToUpdate.setNome(dados.nome());
+        alunoToUpdate.setEmail(dados.email());
+        alunoToUpdate.setDataNascimento(dados.dataNascimento());
+        alunoToUpdate.setAtivo(dados.ativo());
+        alunoRepository.save(alunoToUpdate);
+
+        return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));
     }
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
-        return alunoRepository.findById(id)
-                .map(aluno -> {
-                    alunoRepository.delete(aluno);
-                    usuarioRepository.deleteById(aluno.getId());
-                    return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
-                })
-                .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("erro", "Aluno não encontrado")
-                ));
+        alunoRepository.delete(findByIdOrThrowsNotFoundException(id));
+
+        usuarioRepository.deleteById(id);
+
+        return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
     }
     public ResponseEntity<Map<String, Object>> obterAluno(long id) {
-        return alunoRepository.findById(id)
-                .map(aluno -> {
-                    ObterAluno dto = new ObterAluno(aluno);
-                    return ResponseEntity.ok(Map.of("aluno", (Object) dto));
-                })
-                .orElseGet(() -> ResponseEntity.badRequest().body(
-                        Map.of("erro", "Aluno não encontrado")
-                ));
+        Aluno aluno = findByIdOrThrowsNotFoundException(id);
+
+        ObterAluno dto = new ObterAluno(aluno);
+        return ResponseEntity.ok(Map.of("aluno", (Object) dto));
     }
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
@@ -167,18 +155,10 @@ public class AlunoService {
     }
     @Transactional
     public ResponseEntity<?> matricularAlunosEmLote(MatriculaEmLoteRequest request) {
-        List<Aluno> alunos = alunoRepository.findAllById(request.alunoIds());
-        Optional<Curso> cursoOpt = cursoRepository.findById(request.cursoId());
+        List<Aluno> alunos = request.alunoIds().stream().map(this::findByIdOrThrowsNotFoundException).toList();
 
-        if (cursoOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Curso não encontrado"));
-        }
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(request.cursoId());
 
-        if (alunos.size() != request.alunoIds().size()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Algum aluno não foi encontrado"));
-        }
-
-        Curso curso = cursoOpt.get();
         alunos.forEach(aluno -> aluno.getCursos().add(curso));
         alunoRepository.saveAll(alunos);
 
@@ -198,5 +178,10 @@ public class AlunoService {
                 .toList();
 
         return ResponseEntity.ok(alunos);
+    }
+
+    public Aluno findByIdOrThrowsNotFoundException(Long id) {
+        return alunoRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Aluno com id '%s' não encontrado".formatted(id)));
     }
 }

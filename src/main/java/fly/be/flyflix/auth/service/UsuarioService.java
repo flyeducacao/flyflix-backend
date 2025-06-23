@@ -4,6 +4,7 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,21 +25,13 @@ public class UsuarioService {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private AlunoRepository alunoRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
 
     @Autowired
     private EmailService emailService;
 
     public UsuarioService(UsuarioRepository usuarioRepository, AlunoRepository alunoRepository, PasswordResetTokenRepository tokenRepository) {
         this.usuarioRepository = usuarioRepository;
-        this.alunoRepository = alunoRepository;
-        this.tokenRepository = tokenRepository;
     }
 
 
@@ -59,7 +52,7 @@ public class UsuarioService {
                     );
                     return ResponseEntity.ok(Map.of("message", "Nova senha enviada por email"));
                 })
-                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of("error", "Usuário não encontrado")));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
     private static final List<String> TIPOS_PERMITIDOS = List.of(
             "image/jpeg",
@@ -87,8 +80,7 @@ public class UsuarioService {
             throw new IllegalArgumentException("Tamanho excedido. Envie uma imagem de até 1MB.");
         }
 
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
 
         usuario.setFotoPerfil(arquivo.getBytes());
         usuarioRepository.save(usuario);
@@ -98,8 +90,7 @@ public class UsuarioService {
 
 
     public byte[] obterFoto(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
 
         if (usuario.getFotoPerfil() != null) {
             return usuario.getFotoPerfil();
@@ -116,13 +107,16 @@ public class UsuarioService {
     }
 
     public void removerFoto(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
 
         usuario.setFotoPerfil(null);
         usuarioRepository.save(usuario);
     }
 
+    public Usuario findByIdOrThrowsNotFoundException(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
+    }
 }
 
 

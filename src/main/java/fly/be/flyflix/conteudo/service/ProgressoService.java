@@ -1,50 +1,46 @@
 package fly.be.flyflix.conteudo.service;
 
-import fly.be.flyflix.auth.repository.AlunoRepository;
-import fly.be.flyflix.conteudo.dto.aula.AulaResumoDTO;
+import fly.be.flyflix.auth.service.AlunoService;
 import fly.be.flyflix.conteudo.dto.progresso.ProgressoResponseDTO;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.ProgressoAluno;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
 import fly.be.flyflix.conteudo.repository.ProgressoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
+
 import java.util.Optional;
 
 @Service
 public class ProgressoService {
 
     private final AulaRepository aulaRepository;
-    private final AlunoRepository alunoRepository;
-    private final CursoRepository cursoRepository;
     private final ProgressoRepository progressoRepository;
     private static final Logger logger = LoggerFactory.getLogger(ProgressoService.class);
+    private final AlunoService alunoService;
+    private final AulaService aulaService;
+    private final CursoService cursoService;
 
     @Autowired
-    public ProgressoService(ProgressoRepository progressoRepository, AulaRepository aulaRepository, AlunoRepository alunoRepository, CursoRepository cursoRepository) {
+    public ProgressoService(ProgressoRepository progressoRepository, AulaRepository aulaRepository, AlunoService alunoService, AulaService aulaService, CursoService cursoService) {
         this.progressoRepository = progressoRepository;
         this.aulaRepository = aulaRepository;
-        this.alunoRepository = alunoRepository;
-        this.cursoRepository = cursoRepository;
+        this.alunoService = alunoService;
+        this.aulaService = aulaService;
+        this.cursoService = cursoService;
     }
 
     public void marcarComoAssistida(Long alunoId, Long aulaId, Long cursoId) {
         Optional<ProgressoAluno> progressoExistente = progressoRepository.findByAluno_IdAndAula_Id(alunoId, aulaId);
 
         // Buscar as entidades relacionadas
-        Aluno aluno = alunoRepository.findById(alunoId)
-                .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado: " + alunoId));
-        Aula aula = aulaRepository.findById(aulaId)
-                .orElseThrow(() -> new EntityNotFoundException("Aula não encontrada: " + aulaId));
-        Curso curso = cursoRepository.findById(cursoId)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado: " + cursoId));
+        Aluno aluno = alunoService.findByIdOrThrowsNotFoundException(alunoId);
+        Aula aula = aulaService.findByIdOrThrowsNotFoundException(aulaId);
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
         if (progressoExistente.isPresent()) {
             ProgressoAluno progresso = progressoExistente.get();

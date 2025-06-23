@@ -7,6 +7,7 @@ import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,16 +21,12 @@ import java.util.UUID;
 
 @Service
 public class AdminService {
-
     @Autowired
     private AdminRepository adminRepository;
-
     @Autowired
     private UsuarioRepository usuarioRepository;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
     private EmailService emailService;
 
@@ -74,58 +71,55 @@ public class AdminService {
     }
 
     public ResponseEntity<Map<String, String>> atualizarAdmin(AtualizarAdminRequest dados) {
-        return adminRepository.findById(dados.id())
-                .map(admin -> {
-                    admin.setNome(dados.nome());
-                    admin.setEmail(dados.email());
-                    //admin.setDataNascimento(dados.dataNascimento());
-                    admin.setAtivo(dados.ativo());
-                    adminRepository.save(admin);
-                    return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
-                })
-                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of("error", "Administrador não encontrado")));
+        Admin admin = findByIdOrThrowsNotFoundException(dados.id());
+
+        admin.setNome(dados.nome());
+        admin.setEmail(dados.email());
+        //admin.setDataNascimento(dados.dataNascimento());
+        admin.setAtivo(dados.ativo());
+        adminRepository.save(admin);
+
+        return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
     }
 
 
 
 
-    public ResponseEntity<Map<String, Object>> removerAdmin(Long id) {
-        return adminRepository.findById(id)
-                .map(admin -> {
-                    adminRepository.delete(admin);
-                    usuarioRepository.deleteById(admin.getId());
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("message", "Administrador removido com sucesso");
-                    return ResponseEntity.ok(response);
-                })
-                .orElseGet(() -> {
-                    Map<String, Object> error = new HashMap<>();
-                    error.put("error", "Administrador não encontrado");
-                    return ResponseEntity.badRequest().body(error);
-                });
+    public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
+        Admin admin = findByIdOrThrowsNotFoundException(id);
+
+        adminRepository.delete(admin);
+        usuarioRepository.deleteById(admin.getId());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Administrador removido com sucesso");
+        return ResponseEntity.ok(response);
     }
 
 
     public ResponseEntity<Map<String, Object>> obterAdmin(Long id) {
-        return adminRepository.findById(id)
-                .map(admin -> {
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("admin", new DadosAdminResponse(
-                            admin.getId(),
-                            admin.getNome(),
-                            admin.getEmail(),
-                            admin.getCpf(),
-                            // admin.getDataNascimento(), // Descomente se necessário
-                            admin.getAtivo()
-                    ));
-                    return ResponseEntity.ok(response);
-                })
-                .orElseGet(() -> ResponseEntity.badRequest()
-                        .body(Map.of("error", "Administrador não encontrado")));
+        Admin admin = findByIdOrThrowsNotFoundException(id);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("admin", new DadosAdminResponse(
+            admin.getId(),
+            admin.getNome(),
+            admin.getEmail(),
+            admin.getCpf(),
+            // admin.getDataNascimento(), // Descomente se necessário
+            admin.getAtivo()
+        ));
+
+        return ResponseEntity.ok(response);
     }
 
 
     public Page<Admin> listarAdmins(Pageable paginacao) {
         return adminRepository.findAll(paginacao);
+    }
+
+    public Admin findByIdOrThrowsNotFoundException(Long id) {
+        return adminRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Admin com id '%s' não encontrado".formatted(id)));
     }
 }

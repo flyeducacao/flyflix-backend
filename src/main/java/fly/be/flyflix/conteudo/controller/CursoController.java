@@ -7,11 +7,12 @@ import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
 import fly.be.flyflix.conteudo.service.CursoService;
-import jakarta.persistence.EntityNotFoundException;
+import fly.be.flyflix.conteudo.service.ModuloService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -38,6 +38,8 @@ public class CursoController {
     private ModuloRepository moduloRepository;
     @Autowired
     private CursoService cursoService;
+    @Autowired
+    private ModuloService moduloService;
     // endpoint para cadastro de cursos novos
 
     @PostMapping
@@ -60,10 +62,7 @@ public class CursoController {
     @GetMapping("/{id}")
     @Transactional
     public ResponseEntity<DetalhamentoCurso> detalhar(@PathVariable Long id) {
-        Optional<Curso> optional = cursoRepository.findById(id);
-        if (optional.isEmpty()) return ResponseEntity.notFound().build();
-
-        Curso curso = optional.get();
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(id);
 
         return ResponseEntity.ok(DetalhamentoCurso.by(curso));
     }
@@ -72,41 +71,24 @@ public class CursoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<DetalhamentoCurso> atualizar(@PathVariable Long id, @RequestBody @Valid AtualizacaoCurso dados) {
-        Optional<Curso> optional = cursoRepository.findById(id);
-        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(id);
+        curso.setTitulo(dados.titulo());
 
-        try {
-            Curso curso = optional.get();
-            curso.setTitulo(dados.titulo());
-            //curso.setDescricao(dados.descricao());
-            // curso.setImagemCapa(dados.imagemCapa());
-
-            return ResponseEntity.ok(DetalhamentoCurso.by(curso));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.ok(DetalhamentoCurso.by(curso));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> remover(@PathVariable Long id) {
-        if (!cursoRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        cursoRepository.deleteById(id);
+        cursoRepository.delete(cursoService.findByIdOrThrowsNotFoundException(id));
+
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{cursoId}/modulos/{moduloId}")
     public ResponseEntity<?> adicionarModulo(@PathVariable Long cursoId, @PathVariable Long moduloId) {
-        try {
-            Curso cursoAtualizado = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
-            return ResponseEntity.ok(DetalhamentoCurso.by(cursoAtualizado));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro inesperado");
-        }
+        Curso cursoAtualizado = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
+
+        return ResponseEntity.ok(DetalhamentoCurso.by(cursoAtualizado));
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")
@@ -116,11 +98,9 @@ public class CursoController {
             @PathVariable Long idModulo,
             @RequestParam(required = false) Integer ordem // ordem opcional, pode definir aqui
     ) {
-        Curso curso = cursoRepository.findById(idCurso)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(idCurso);
 
-        Modulo modulo = moduloRepository.findById(idModulo)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
 
         // Verificar se já existe associação para evitar duplicidade
         boolean existe = cursoModuloRepository.existsByCursoAndModulo(curso, modulo);
@@ -141,8 +121,7 @@ public class CursoController {
 
     @GetMapping("/{id}/modulos")
     public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
-        cursoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Curso com id '%s' não encontrado".formatted(id)));
+        cursoService.findByIdOrThrowsNotFoundException(id);
 
         List<ModuloByListarPorCurso> resposta = moduloRepository.findByCursoId(id).stream()
                 .map(ModuloByListarPorCurso::by)
@@ -154,16 +133,13 @@ public class CursoController {
     @DeleteMapping("/{idCurso}/modulos/{idModulo}")
     @Transactional
     public ResponseEntity<String> removerModuloDoCurso(@PathVariable Long idCurso, @PathVariable Long idModulo) {
-        Curso curso = cursoRepository.findById(idCurso)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(idCurso);
 
-        Modulo modulo = moduloRepository.findById(idModulo)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
 
         Optional<CursoModulo> cursoModuloOpt = cursoModuloRepository.findByCursoAndModulo(curso, modulo);
         if (cursoModuloOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Associação entre curso e módulo não encontrada.");
+            throw new NotFoundException("Associação entre curso e módulo não encontrada.");
         }
 
         CursoModulo cursoModulo = cursoModuloOpt.get();
@@ -175,7 +151,4 @@ public class CursoController {
 
         return ResponseEntity.ok("Módulo removido com sucesso.");
     }
-
-
-
 }

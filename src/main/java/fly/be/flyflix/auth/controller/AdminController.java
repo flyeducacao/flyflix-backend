@@ -31,7 +31,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> remover(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> remover(@PathVariable Long id) {
         return adminService.removerAdmin(id);
     }
 
