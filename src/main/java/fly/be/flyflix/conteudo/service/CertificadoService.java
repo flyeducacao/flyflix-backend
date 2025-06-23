@@ -6,6 +6,7 @@ import fly.be.flyflix.conteudo.dto.aula.AulaResumoDTO;
 import fly.be.flyflix.conteudo.dto.certificado.CertificadoElegibilidadeDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.ProgressoAluno;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
 import fly.be.flyflix.conteudo.repository.ProgressoRepository;
 import org.slf4j.Logger;
@@ -99,7 +100,7 @@ public class CertificadoService {
 
         CertificadoElegibilidadeDTO elegibilidade = verificarElegibilidade(alunoId, cursoId);
         if (!elegibilidade.isElegivel()) {
-            throw new IllegalStateException("Aluno não qualificado para certificado: " + elegibilidade.getMotivo());
+            throw new BadRequestException("Aluno não qualificado para certificado: " + elegibilidade.getMotivo());
         }
 
         return pdfGenerator.gerar(

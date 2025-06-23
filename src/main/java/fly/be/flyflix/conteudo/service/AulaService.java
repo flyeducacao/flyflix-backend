@@ -67,7 +67,7 @@ public class AulaService {
 
     @Transactional
     public void remover(Long id) {
-        aulaRepository.deleteById(id);
+        aulaRepository.delete(findByIdOrThrowsNotFoundException(id));
     }
 
     public Aula detalhar(Long id) {

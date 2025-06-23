@@ -4,6 +4,7 @@ import fly.be.flyflix.auth.controller.dto.FotoUploadDTO;
 import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.UsuarioService;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,7 +24,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
-
     @Autowired
     private UsuarioService usuarioService;
     @Autowired
@@ -57,30 +57,15 @@ public class UsuarioController {
 
         var tipo = imagem.getContentType();
         if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
-            return ResponseEntity.badRequest().body(new MensagemRespostaDTO(
-                    "Tipo de arquivo não permitido. Envie JPEG ou PNG.",
-                    false,
-                    400,
-                    "VALIDACAO_ARQUIVO"
-            ));
+            throw new BadRequestException("Tipo de arquivo não permitido. Envie JPEG ou PNG.");
         }
 
         if (imagem.isEmpty()) {
-            return ResponseEntity.badRequest().body(new MensagemRespostaDTO(
-                    "Arquivo está vazio.",
-                    false,
-                    400,
-                    "ARQUIVO_VAZIO"
-            ));
+            throw new BadRequestException("Arquivo está vazio.");
         }
 
         if (imagem.getSize() > 300 * 1024) {
-            return ResponseEntity.badRequest().body(new MensagemRespostaDTO(
-                    "Tamanho excedido. Envie uma imagem de até 300 KB.",
-                    false,
-                    400,
-                    "TAMANHO_EXCEDIDO"
-            ));
+            throw new BadRequestException("Tamanho excedido. Envie uma imagem de até 300 KB.");
         }
 
         var usuario = usuarioService.findByIdOrThrowsNotFoundException(id);
@@ -108,7 +93,7 @@ public class UsuarioController {
             headers.setContentType(MediaType.IMAGE_JPEG); // ajuste conforme o tipo salvo
             return new ResponseEntity<>(imagem, headers, HttpStatus.OK);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -117,21 +102,12 @@ public class UsuarioController {
      */
     @DeleteMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> removerFoto(@PathVariable Long id) {
-        try {
-            usuarioService.removerFoto(id);
-            return ResponseEntity.ok(new MensagemRespostaDTO(
-                    "Foto de perfil removida com sucesso.",
-                    true,
-                    200,
-                    null
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MensagemRespostaDTO(
-                    e.getMessage(),
-                    false,
-                    404,
-                    "USUARIO_NAO_ENCONTRADO"
-            ));
-        }
+        usuarioService.removerFoto(id);
+        return ResponseEntity.ok(new MensagemRespostaDTO(
+                "Foto de perfil removida com sucesso.",
+                true,
+                200,
+                null
+        ));
     }
 }

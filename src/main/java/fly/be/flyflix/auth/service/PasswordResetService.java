@@ -6,6 +6,7 @@ import fly.be.flyflix.auth.entity.PasswordResetToken;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,13 +19,10 @@ import java.util.UUID;
 
 @Service
 public class PasswordResetService {
-
     @Autowired
     private UsuarioRepository usuarioRepository;
-
     @Autowired
     private PasswordResetTokenRepository tokenRepository;
-
     @Autowired
     private EmailService emailService;
     @Autowired
@@ -35,7 +33,7 @@ public class PasswordResetService {
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(dto.email());
 
         if (usuarioOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email não encontrado"));
+            throw new BadRequestException("Email não encontrado");
         }
 
         Usuario usuario = usuarioOpt.get();
@@ -61,18 +59,17 @@ public class PasswordResetService {
 
 
     public ResponseEntity<Map<String, Object>> redefinirSenha(RedefinicaoSenhaDTO dto) {
-        Optional<PasswordResetToken> tokenOpt = tokenRepository.findByToken(dto.token());
+        PasswordResetToken token = tokenRepository.findByToken(dto.token())
+                .orElseThrow(() -> new BadRequestException("Token inválido"));
 
-        if (tokenOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Token inválido"));
-        }
-        PasswordResetToken token = tokenOpt.get();
         if (token.getExpirationDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Token expirado"));
+            throw new BadRequestException("Token expirado");
         }
+
         Usuario usuario = token.getUsuario();
         usuario.setSenha(dto.novaSenha()); // idealmente aplicar hash
         tokenRepository.delete(token);
+
         return ResponseEntity.ok(Map.of("message", "Senha redefinida com sucesso"));
     }
 }

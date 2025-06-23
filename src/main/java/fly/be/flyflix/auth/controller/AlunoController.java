@@ -19,11 +19,8 @@ import java.util.Set;
 @RestController
 @RequestMapping("/alunos")
 public class AlunoController {
-
     @Autowired
     private AlunoService alunoService;
-    @Autowired
-    private AlunoRepository alunoRepository;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> cadastrar(@RequestBody CadastroAluno dados) {
@@ -47,21 +44,17 @@ public class AlunoController {
 
     @GetMapping
     public ResponseEntity<Page<AlunoResumoDTO>> listar(Pageable paginacao) {
-        try {
-            Page<AlunoResumoDTO> alunos = alunoService.listarAlunosResumo(paginacao);
-            return ResponseEntity.ok(alunos);
-        } catch (Exception e) {
-            log.error("Erro ao listar alunos", e);
-            // Retornar corpo vazio ou mensagem customizada:
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Page.empty(paginacao));
-        }
+        Page<AlunoResumoDTO> alunos = alunoService.listarAlunosResumo(paginacao);
+
+        return ResponseEntity.ok(alunos);
     }
     @GetMapping("/por-data-cadastro")
     public ResponseEntity<List<AlunoResumoDTO>> listarPorDataCadastro(
             @RequestParam LocalDate dataInicio,
-            @RequestParam LocalDate dataFim) {
+            @RequestParam LocalDate dataFim
+    ) {
         List<AlunoResumoDTO> alunos = alunoService.listarPorDataCadastro(dataInicio, dataFim);
+
         return ResponseEntity.ok(alunos);
     }
     @PostMapping("/{id}/matricular")
@@ -70,11 +63,13 @@ public class AlunoController {
             @RequestBody Set<Long> cursoIds
     ) {
         MatricularAlunoRequest request = new MatricularAlunoRequest(id, cursoIds);
+
         return alunoService.matricularAluno(request);
     }
 
     @PostMapping("/matricula-em-lote")
     public ResponseEntity<?> matriculaEmLote(@RequestBody MatriculaEmLoteRequest request) {
+
         return alunoService.matricularAlunosEmLote(request);
     }
     @GetMapping("/por-curso/{cursoId}")

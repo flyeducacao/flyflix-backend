@@ -7,6 +7,7 @@ import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -32,10 +33,10 @@ public class AdminService {
 
     public ResponseEntity<Map<String, Object>> cadastrarAdmin(CadastroAdmin dados) {
         if (usuarioRepository.existsByEmail(dados.email())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email já está em uso"));
+            throw new BadRequestException("Email já está em uso");
         }
         if (usuarioRepository.existsByCpf(dados.cpf())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "CPF já está cadastrado"));
+            throw new BadRequestException("CPF já está cadastrado");
         }
 
         Admin admin = new Admin();

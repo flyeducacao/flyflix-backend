@@ -7,6 +7,7 @@ import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.*;
 import jakarta.transaction.Transactional;
@@ -35,39 +36,36 @@ public class CursoService {
 
     @Transactional
     public Curso cadastrarCurso(CadastroCurso dados) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Long userId = Long.valueOf(authentication.getName());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.valueOf(authentication.getName());
 
-            Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
+        Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
 
-            Curso curso = Curso.builder()
-                    .titulo(dados.titulo())
-                    //.descricao(dados.descricao())
-                    //.imagemCapa(dados.imagemCapa())
-                    .dataPublicacao(LocalDate.now())
-                    .autor(autor)
-                    .build();
+        Curso curso = Curso.builder()
+                .titulo(dados.titulo())
+                //.descricao(dados.descricao())
+                //.imagemCapa(dados.imagemCapa())
+                .dataPublicacao(LocalDate.now())
+                .autor(autor)
+                .build();
 
-            curso = cursoRepository.save(curso); // Salva primeiro para garantir ID e persistência
+        curso = cursoRepository.save(curso); // Salva primeiro para garantir ID e persistência
 
-            if (dados.modulosIds() != null && !dados.modulosIds().isEmpty()) {
-                List<Modulo> modulos = dados.modulosIds().stream().map((id) -> moduloService.findByIdOrThrowsNotFoundException(id)).toList();
+        if (dados.modulosIds() != null && !dados.modulosIds().isEmpty()) {
+            List<Modulo> modulos = dados.modulosIds().stream()
+                    .map((id) -> moduloService.findByIdOrThrowsNotFoundException(id))
+                    .toList();
 
-                int ordem = 1;
-                for (Modulo modulo : modulos) {
-                    CursoModulo cursoModulo = new CursoModulo(curso, modulo, ordem++);
-                    curso.getCursoModulos().add(cursoModulo);
-                    modulo.getCursoModulos().add(cursoModulo);
-                    cursoModuloRepository.save(cursoModulo);
-                }
+            int ordem = 1;
+            for (Modulo modulo : modulos) {
+                CursoModulo cursoModulo = new CursoModulo(curso, modulo, ordem++);
+                curso.getCursoModulos().add(cursoModulo);
+                modulo.getCursoModulos().add(cursoModulo);
+                cursoModuloRepository.save(cursoModulo);
             }
-
-            return curso;
-        } catch (Exception e) {
-            log.error("Erro ao cadastrar curso: {}", e.getMessage(), e);
-            throw e;
         }
+
+        return curso;
     }
 
 
@@ -96,7 +94,7 @@ public class CursoService {
         boolean jaAssociado = curso.getCursoModulos().stream()
                 .anyMatch(cm -> cm.getModulo().getId().equals(moduloId));
         if (jaAssociado) {
-            throw new IllegalStateException("Módulo já está associado a este curso");
+            throw new BadRequestException("Módulo já está associado a este curso");
         }
 
         // Define a próxima ordem disponível
@@ -107,7 +105,7 @@ public class CursoService {
 
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
         cursoModuloRepository.save(cursoModulo);
-        curso.getCursoModulos().forEach(cm -> cm.getModulo().getId()); // força load
+
         return curso;
     }
 

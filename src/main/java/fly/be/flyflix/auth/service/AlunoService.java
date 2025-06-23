@@ -7,8 +7,8 @@ import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
 import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -25,8 +25,6 @@ import java.util.*;
 @Service
 public class AlunoService {
     @Autowired
-    private CursoRepository cursoRepository;
-    @Autowired
     private UsuarioRepository usuarioRepository;
     @Autowired
     private AlunoRepository alunoRepository;
@@ -41,12 +39,10 @@ public class AlunoService {
         Map<String, Object> response = new HashMap<>();
 
         if (usuarioRepository.existsByEmail(dados.email())) {
-            response.put("error", "Email já está em uso");
-            return ResponseEntity.badRequest().body(response);
+            throw new BadRequestException("Email já está em uso");
         }
         if (usuarioRepository.existsByCpf(dados.cpf())) {
-            response.put("error", "CPF já está cadastrado");
-            return ResponseEntity.badRequest().body(response);
+            throw new BadRequestException("CPF já está cadastrado");
         }
 
         Aluno aluno = new Aluno();
@@ -107,14 +103,10 @@ public class AlunoService {
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
     public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
-        try {
-            logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
-            return alunoRepository.findAll(paginacao)
-                    .map(AlunoResumoDTO::new);
-        } catch (Exception e) {
-            logger.error("Erro ao listar alunos", e);
-            throw e;
-        }
+        logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
+
+        return alunoRepository.findAll(paginacao)
+                .map(AlunoResumoDTO::new);
     }
     public List<AlunoResumoDTO> listarPorDataCadastro(LocalDate dataInicio, LocalDate dataFim) {
         return alunoRepository.findByDataCadastroBetween(dataInicio, dataFim)
@@ -124,18 +116,11 @@ public class AlunoService {
     }
     @Transactional
     public ResponseEntity<MatriculaResponseDTO> matricularAluno(MatricularAlunoRequest request) {
-        Optional<Aluno> alunoOpt = alunoRepository.findById(request.alunoId());
-        if (alunoOpt.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+        Aluno aluno = findByIdOrThrowsNotFoundException(request.alunoId());
 
-        Aluno aluno = alunoOpt.get();
-
-        List<Curso> cursos = cursoRepository.findAllById(request.cursoIds());
-
-        if (cursos.size() != request.cursoIds().size()) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Curso> cursos = request.cursoIds().stream()
+                .map(cursoService::findByIdOrThrowsNotFoundException)
+                .toList();
 
         aluno.getCursos().addAll(cursos);
         alunoRepository.save(aluno);
@@ -166,13 +151,9 @@ public class AlunoService {
     }
     @Transactional
     public ResponseEntity<List<AlunoResumoDTO>> listarAlunosPorCurso(Long cursoId) {
-        Optional<Curso> cursoOpt = cursoRepository.findById(cursoId);
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
-        if (cursoOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(List.of());
-        }
-
-        List<AlunoResumoDTO> alunos = cursoOpt.get().getAlunos()
+        List<AlunoResumoDTO> alunos = curso.getAlunos()
                 .stream()
                 .map(AlunoResumoDTO::new)
                 .toList();

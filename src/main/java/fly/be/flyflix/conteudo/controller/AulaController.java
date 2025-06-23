@@ -4,6 +4,7 @@ import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
 import fly.be.flyflix.conteudo.service.AulaService;
 import fly.be.flyflix.conteudo.service.ModuloService;
@@ -18,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 @RestController
@@ -76,12 +76,11 @@ public class AulaController {
             @Parameter(description = "Imagem da capa", required = true)
             @RequestParam("imagem") MultipartFile imagem) throws Exception {
 
-        var aula = aulaRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula não encontrada"));
+        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
 
         var tipo = imagem.getContentType();
         if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de imagem inválido (JPEG ou PNG)");
+            throw new BadRequestException("Tipo de imagem inválido (JPEG ou PNG)");
         }
 
         aula.setCapa(imagem.getBytes());
@@ -123,6 +122,7 @@ public class AulaController {
     @Transactional
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         aulaRepository.delete(aulaService.findByIdOrThrowsNotFoundException(id));
+
         return ResponseEntity.noContent().build();
     }
 
