@@ -60,6 +60,8 @@ public class AdminService {
                 admin.getNome(),
                 senhaTemp
         );
+        String assunto = "Sua conta FlyFlix está pronta!";
+
 
         emailService.enviarEmail(
                 admin.getEmail(),
