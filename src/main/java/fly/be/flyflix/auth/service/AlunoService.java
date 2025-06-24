@@ -71,7 +71,7 @@ public class AlunoService {
                         "<p>Agora é só clicar aqui para dar login e curtir essa nova fase com a gente!<br>" +
                         "Se der qualquer bug, chama a gente rapidinho! 😉</p>" +
                         "<p>Abraço digital,<br>" +
-                        "Equipe FlyFlix 🤖</p>",
+                        "Equipe Fly 🤖</p>",
                 dados.nome(),
                 senhaTemp
         );
