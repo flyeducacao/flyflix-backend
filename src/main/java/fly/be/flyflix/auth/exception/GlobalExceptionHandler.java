@@ -6,6 +6,7 @@ import fly.be.flyflix.conteudo.exceptions.DefaultMessageError;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -57,5 +58,12 @@ public class GlobalExceptionHandler {
         DefaultMessageError error = new DefaultMessageError(e.getStatusCode().value(), e.getReason());
 
         return ResponseEntity.status(e.getStatusCode()).body(error);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<DefaultMessageError> handlerAuthenticationException(AuthenticationException e) {
+        DefaultMessageError error = new DefaultMessageError(HttpStatus.UNAUTHORIZED.value(), "Email ou senha incorretos");
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 }
