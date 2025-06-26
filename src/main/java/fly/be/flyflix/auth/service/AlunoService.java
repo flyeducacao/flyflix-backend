@@ -34,13 +34,13 @@ public class AlunoService {
     private EmailService emailService;
     @Autowired
     private CursoService cursoService;
+    @Autowired
+    private UsuarioService usuarioService;
 
     public ResponseEntity<Map<String, Object>> cadastrarAluno(CadastroAluno dados) {
         Map<String, Object> response = new HashMap<>();
 
-        if (usuarioRepository.existsByEmail(dados.email())) {
-            throw new BadRequestException("Email já está em uso");
-        }
+        usuarioService.assertEmailIsNotRegistered(dados.email());
         if (usuarioRepository.existsByCpf(dados.cpf())) {
             throw new BadRequestException("CPF já está cadastrado");
         }
@@ -83,6 +83,9 @@ public class AlunoService {
 
     public ResponseEntity<Map<String, Object>> atualizarAluno(AtualizarAlunoRequest dados) {
         Aluno alunoToUpdate = findByIdOrThrowsNotFoundException(dados.id());
+
+        usuarioService.assertEmailIsNotRegistered(dados.email(), alunoToUpdate);
+
         alunoToUpdate.setNome(dados.nome());
         alunoToUpdate.setEmail(dados.email());
         alunoToUpdate.setDataNascimento(dados.dataNascimento());

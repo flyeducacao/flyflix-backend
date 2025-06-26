@@ -1,7 +1,6 @@
 package fly.be.flyflix.auth.repository;
 
 import fly.be.flyflix.auth.entity.Usuario;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,5 +19,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     boolean existsByCpf(String cpf);
 
 
+    Optional<Usuario> findByEmailAndIdIsNot(String email, Long id);
 }
 
