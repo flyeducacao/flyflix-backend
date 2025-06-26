@@ -97,9 +97,11 @@ public class AlunoService {
     }
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
-        alunoRepository.delete(findByIdOrThrowsNotFoundException(id));
+        Aluno alunoToDesative = findByIdOrThrowsNotFoundException(id);
 
-        usuarioRepository.deleteById(id);
+        alunoToDesative.setAtivo(false);
+
+        usuarioRepository.save(alunoToDesative);
 
         return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
     }
@@ -114,7 +116,7 @@ public class AlunoService {
     public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
         logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
 
-        return alunoRepository.findAll(paginacao)
+        return alunoRepository.findAllByAtivoIsTrue(paginacao)
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)));
     }
 
@@ -123,7 +125,7 @@ public class AlunoService {
     }
 
     public List<AlunoResumoDTO> listarPorDataCadastro(LocalDate dataInicio, LocalDate dataFim) {
-        return alunoRepository.findByDataCadastroBetween(dataInicio, dataFim)
+        return alunoRepository.findByDataCadastroBetweenAndAtivoIsTrue(dataInicio, dataFim)
                 .stream()
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
@@ -169,6 +171,7 @@ public class AlunoService {
 
         List<AlunoResumoDTO> alunos = curso.getAlunos()
                 .stream()
+                .filter(Aluno::getAtivo)
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
 
@@ -176,7 +179,11 @@ public class AlunoService {
     }
 
     public Aluno findByIdOrThrowsNotFoundException(Long id) {
-        return alunoRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Aluno com id '%s' não encontrado".formatted(id)));
+        return alunoRepository.findByIdAndAtivoIsTrue(id)
+                .orElseThrow(() -> alunoIdNotFound(id));
+    }
+
+    public NotFoundException alunoIdNotFound(Long id) {
+        return new NotFoundException("Aluno com id '%s' não encontrado".formatted(id));
     }
 }

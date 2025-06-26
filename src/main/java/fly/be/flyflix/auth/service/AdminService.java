@@ -85,14 +85,12 @@ public class AdminService {
         return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
     }
 
-
-
-
     public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
-        Admin admin = findByIdOrThrowsNotFoundException(id);
+        Admin adminToDesative = findByIdOrThrowsNotFoundException(id);
 
-        adminRepository.delete(admin);
-        usuarioRepository.deleteById(admin.getId());
+        adminToDesative.setAtivo(false);
+
+        usuarioRepository.save(adminToDesative);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Administrador removido com sucesso");
@@ -118,11 +116,15 @@ public class AdminService {
 
 
     public Page<Admin> listarAdmins(Pageable paginacao) {
-        return adminRepository.findAll(paginacao);
+        return adminRepository.findAllByAtivoIsTrue(paginacao);
     }
 
     public Admin findByIdOrThrowsNotFoundException(Long id) {
-        return adminRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Admin com id '%s' não encontrado".formatted(id)));
+        return adminRepository.findByIdAndAtivoIsTrue(id)
+                .orElseThrow(() -> adminIdNotFound(id));
+    }
+
+    public NotFoundException adminIdNotFound(Long id) {
+        return new NotFoundException("Admin com id '%s' não encontrado".formatted(id));
     }
 }
