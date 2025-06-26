@@ -2,6 +2,7 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
@@ -114,12 +115,17 @@ public class AlunoService {
         logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
 
         return alunoRepository.findAll(paginacao)
-                .map(AlunoResumoDTO::new);
+                .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)));
     }
+
+    private String gerarUrlFotoUsuario(Usuario usuario) {
+        return "/usuarios/%s/foto".formatted(usuario.getId());
+    }
+
     public List<AlunoResumoDTO> listarPorDataCadastro(LocalDate dataInicio, LocalDate dataFim) {
         return alunoRepository.findByDataCadastroBetween(dataInicio, dataFim)
                 .stream()
-                .map(AlunoResumoDTO::new)
+                .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
     }
     @Transactional
@@ -163,7 +169,7 @@ public class AlunoService {
 
         List<AlunoResumoDTO> alunos = curso.getAlunos()
                 .stream()
-                .map(AlunoResumoDTO::new)
+                .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
 
         return ResponseEntity.ok(alunos);
