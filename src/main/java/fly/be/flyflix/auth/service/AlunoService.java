@@ -99,8 +99,6 @@ public class AlunoService {
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
         Aluno alunoToDesative = findByIdOrThrowsNotFoundException(id);
 
-        if (!alunoToDesative.getAtivo()) throw alunoIdNotFound(id);
-
         alunoToDesative.setAtivo(false);
 
         usuarioRepository.save(alunoToDesative);
@@ -118,7 +116,7 @@ public class AlunoService {
     public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
         logger.info("Listando alunos (resumo) com paginação: {}", paginacao);
 
-        return alunoRepository.findAll(paginacao)
+        return alunoRepository.findAllByAtivoIsTrue(paginacao)
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)));
     }
 
@@ -127,7 +125,7 @@ public class AlunoService {
     }
 
     public List<AlunoResumoDTO> listarPorDataCadastro(LocalDate dataInicio, LocalDate dataFim) {
-        return alunoRepository.findByDataCadastroBetween(dataInicio, dataFim)
+        return alunoRepository.findByDataCadastroBetweenAndAtivoIsTrue(dataInicio, dataFim)
                 .stream()
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
@@ -173,6 +171,7 @@ public class AlunoService {
 
         List<AlunoResumoDTO> alunos = curso.getAlunos()
                 .stream()
+                .filter(Aluno::getAtivo)
                 .map(aluno -> new AlunoResumoDTO(aluno, gerarUrlFotoUsuario(aluno)))
                 .toList();
 
@@ -180,7 +179,7 @@ public class AlunoService {
     }
 
     public Aluno findByIdOrThrowsNotFoundException(Long id) {
-        return alunoRepository.findById(id)
+        return alunoRepository.findByIdAndAtivoIsTrue(id)
                 .orElseThrow(() -> alunoIdNotFound(id));
     }
 

@@ -85,13 +85,8 @@ public class AdminService {
         return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
     }
 
-
-
-
     public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
         Admin adminToDesative = findByIdOrThrowsNotFoundException(id);
-
-        if (!adminToDesative.getAtivo()) throw adminIdNotFound(id);
 
         adminToDesative.setAtivo(false);
 
@@ -121,11 +116,11 @@ public class AdminService {
 
 
     public Page<Admin> listarAdmins(Pageable paginacao) {
-        return adminRepository.findAll(paginacao);
+        return adminRepository.findAllByAtivoIsTrue(paginacao);
     }
 
     public Admin findByIdOrThrowsNotFoundException(Long id) {
-        return adminRepository.findById(id)
+        return adminRepository.findByIdAndAtivoIsTrue(id)
                 .orElseThrow(() -> adminIdNotFound(id));
     }
 
