@@ -121,12 +121,16 @@ public class UsuarioService {
 
     public void assertEmailIsNotRegistered(String email) {
         usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException("O email '%s' já está cadastrado".formatted(email)));
+                .ifPresent(this::throwsEmailJaCadastradoException);
     }
 
     public void assertEmailIsNotRegistered(String email, Usuario usuario) {
         usuarioRepository.findByEmailAndIdIsNot(email, usuario.getId())
-                .orElseThrow(() -> new BadRequestException("O email '%s' já está cadastrado".formatted(email)));
+                .ifPresent(this::throwsEmailJaCadastradoException);
+    }
+
+    public void throwsEmailJaCadastradoException(Usuario usuario) {
+        throw new BadRequestException("O email '%s' já está cadastrado".formatted(usuario.getEmail()));
     }
 }
 
