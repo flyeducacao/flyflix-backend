@@ -76,8 +76,4 @@ public class AlunoController {
     public ResponseEntity<List<AlunoResumoDTO>> listarPorCurso(@PathVariable Long cursoId) {
         return alunoService.listarAlunosPorCurso(cursoId);
     }
-
-
-
-
 }
