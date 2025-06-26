@@ -89,10 +89,13 @@ public class AdminService {
 
 
     public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
-        Admin admin = findByIdOrThrowsNotFoundException(id);
+        Admin adminToDesative = findByIdOrThrowsNotFoundException(id);
 
-        adminRepository.delete(admin);
-        usuarioRepository.deleteById(admin.getId());
+        if (!adminToDesative.getAtivo()) throw adminIdNotFound(id);
+
+        adminToDesative.setAtivo(false);
+
+        usuarioRepository.save(adminToDesative);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Administrador removido com sucesso");
@@ -123,6 +126,10 @@ public class AdminService {
 
     public Admin findByIdOrThrowsNotFoundException(Long id) {
         return adminRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Admin com id '%s' não encontrado".formatted(id)));
+                .orElseThrow(() -> adminIdNotFound(id));
+    }
+
+    public NotFoundException adminIdNotFound(Long id) {
+        return new NotFoundException("Admin com id '%s' não encontrado".formatted(id));
     }
 }

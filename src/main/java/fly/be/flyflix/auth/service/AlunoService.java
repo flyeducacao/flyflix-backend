@@ -97,9 +97,13 @@ public class AlunoService {
     }
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
-        alunoRepository.delete(findByIdOrThrowsNotFoundException(id));
+        Aluno alunoToDesative = findByIdOrThrowsNotFoundException(id);
 
-        usuarioRepository.deleteById(id);
+        if (!alunoToDesative.getAtivo()) throw alunoIdNotFound(id);
+
+        alunoToDesative.setAtivo(false);
+
+        usuarioRepository.save(alunoToDesative);
 
         return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
     }
@@ -177,6 +181,10 @@ public class AlunoService {
 
     public Aluno findByIdOrThrowsNotFoundException(Long id) {
         return alunoRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Aluno com id '%s' não encontrado".formatted(id)));
+                .orElseThrow(() -> alunoIdNotFound(id));
+    }
+
+    public NotFoundException alunoIdNotFound(Long id) {
+        return new NotFoundException("Aluno com id '%s' não encontrado".formatted(id));
     }
 }
