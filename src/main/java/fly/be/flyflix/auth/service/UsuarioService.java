@@ -4,6 +4,7 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -116,6 +117,16 @@ public class UsuarioService {
     public Usuario findByIdOrThrowsNotFoundException(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
+    }
+
+    public void assertEmailIsNotRegistered(String email) {
+        usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("O email '%s' já está cadastrado".formatted(email)));
+    }
+
+    public void assertEmailIsNotRegistered(String email, Usuario usuario) {
+        usuarioRepository.findByEmailAndIdIsNot(email, usuario.getId())
+                .orElseThrow(() -> new BadRequestException("O email '%s' já está cadastrado".formatted(email)));
     }
 }
 
