@@ -108,13 +108,13 @@ public class AlunoService {
 
         usuarioRepository.save(alunoToDesative);
 
-        return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno removido com sucesso"));
+        return ResponseEntity.ok(Map.of("message", "Aluno removido com sucesso"));
     }
     public ResponseEntity<Map<String, Object>> obterAluno(long id) {
         Aluno aluno = findByIdOrThrowsNotFoundException(id);
 
         ObterAluno dto = new ObterAluno(aluno);
-        return ResponseEntity.ok(Map.of("aluno", (Object) dto));
+        return ResponseEntity.ok(Map.of("aluno", dto));
     }
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
