@@ -38,7 +38,7 @@ public class ProgressoService {
         Optional<ProgressoAluno> progressoExistente = progressoRepository.findByAluno_IdAndAula_Id(alunoId, aulaId);
 
         // Buscar as entidades relacionadas
-        Aluno aluno = alunoService.findByIdOrThrowsNotFoundException(alunoId);
+        Aluno aluno = alunoService.findByIdAndAtivoIsTrueOrThrowsNotFoundException(alunoId);
         Aula aula = aulaService.findByIdOrThrowsNotFoundException(aulaId);
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 

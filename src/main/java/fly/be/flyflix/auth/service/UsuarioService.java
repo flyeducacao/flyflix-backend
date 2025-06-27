@@ -1,11 +1,14 @@
 package fly.be.flyflix.auth.service;
 
+import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
+import jakarta.validation.constraints.NotBlank;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -127,6 +130,20 @@ public class UsuarioService {
     public void assertEmailIsNotRegistered(String email, Usuario usuario) {
         usuarioRepository.findByEmailAndIdIsNot(email, usuario.getId())
                 .ifPresent(this::throwsEmailJaCadastradoException);
+    }
+
+    public void assertCpfDoesNotBelongsToAnotherUser(String cpf) {
+        usuarioRepository.findByCpf(cpf)
+                .ifPresent(this::throwsCpfJaCadastradoException);
+    }
+
+    public void assertCpfDoesNotBelongsToAnotherUser(String cpf, Usuario usuario) {
+        usuarioRepository.findByCpfAndIdIsNot(cpf, usuario.getId())
+                .ifPresent(this::throwsCpfJaCadastradoException);
+    }
+
+    private void throwsCpfJaCadastradoException(Usuario usuario) {
+        throw new BadRequestException("O cpf '%s' já está cadastrado".formatted(usuario.getCpf()));
     }
 
     public void throwsEmailJaCadastradoException(Usuario usuario) {
