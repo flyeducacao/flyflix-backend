@@ -6,8 +6,6 @@ import fly.be.flyflix.auth.controller.dto.admin.DadosAdminResponse;
 import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
-import fly.be.flyflix.auth.repository.UsuarioRepository;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -71,7 +69,7 @@ public class AdminService {
     }
 
     public ResponseEntity<Map<String, String>> atualizarAdmin(AtualizarAdminRequest dados) {
-        Admin admin = findByIdOrThrowsNotFoundException(dados.id());
+        Admin admin = findByIdAndAtivoIsTrueOrThrowsNotFoundException(dados.id());
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), admin);
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), admin);
@@ -86,7 +84,7 @@ public class AdminService {
     }
 
     public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
-        Admin adminToDesative = findByIdOrThrowsNotFoundException(id);
+        Admin adminToDesative = findByIdAndAtivoIsTrueOrThrowsNotFoundException(id);
 
         adminToDesative.setAtivo(false);
         adminRepository.save(adminToDesative);
@@ -118,8 +116,13 @@ public class AdminService {
         return adminRepository.findAllByAtivoIsTrue(paginacao);
     }
 
-    public Admin findByIdOrThrowsNotFoundException(Long id) {
+    public Admin findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
         return adminRepository.findByIdAndAtivoIsTrue(id)
+                .orElseThrow(() -> adminIdNotFound(id));
+    }
+
+    public Admin findByIdOrThrowsNotFoundException(Long id) {
+        return adminRepository.findById(id)
                 .orElseThrow(() -> adminIdNotFound(id));
     }
 
