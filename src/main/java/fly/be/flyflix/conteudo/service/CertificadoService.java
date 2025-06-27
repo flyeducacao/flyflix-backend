@@ -79,7 +79,7 @@ public class CertificadoService {
 
 
     public String buscarNomeAluno(Long alunoId) {
-        Aluno aluno = alunoService.findByIdOrThrowsNotFoundException(alunoId);
+        Aluno aluno = alunoService.findByIdAndAtivoIsTrueOrThrowsNotFoundException(alunoId);
 
         return aluno.getNome();
     }

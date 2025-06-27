@@ -8,7 +8,6 @@ import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
@@ -42,9 +41,7 @@ public class AlunoService {
         Map<String, Object> response = new HashMap<>();
 
         usuarioService.assertEmailIsNotRegistered(dados.email());
-        if (usuarioRepository.existsByCpf(dados.cpf())) {
-            throw new BadRequestException("CPF já está cadastrado");
-        }
+        usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
 
         Aluno aluno = new Aluno();
         aluno.setCpf(dados.cpf());
@@ -83,21 +80,22 @@ public class AlunoService {
     }
 
     public ResponseEntity<Map<String, Object>> atualizarAluno(AtualizarAlunoRequest dados) {
-        Aluno alunoToUpdate = findByIdOrThrowsNotFoundException(dados.id());
+        Aluno alunoToUpdate = findByIdAndAtivoIsTrueOrThrowsNotFoundException(dados.id());
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), alunoToUpdate);
+        usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), alunoToUpdate);
 
         alunoToUpdate.setNome(dados.nome());
         alunoToUpdate.setEmail(dados.email());
         alunoToUpdate.setDataNascimento(dados.dataNascimento());
-        alunoToUpdate.setAtivo(dados.ativo());
+        alunoToUpdate.setCpf(dados.cpf());
         alunoRepository.save(alunoToUpdate);
 
         return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));
     }
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {
-        Aluno alunoToDesative = findByIdOrThrowsNotFoundException(id);
+        Aluno alunoToDesative = findByIdAndAtivoIsTrueOrThrowsNotFoundException(id);
 
         alunoToDesative.setAtivo(false);
 
@@ -134,6 +132,8 @@ public class AlunoService {
     public ResponseEntity<MatriculaResponseDTO> matricularAluno(MatricularAlunoRequest request) {
         Aluno aluno = findByIdOrThrowsNotFoundException(request.alunoId());
 
+        if (!aluno.getAtivo()) aluno.setAtivo(true);
+
         List<Curso> cursos = request.cursoIds().stream()
                 .map(cursoService::findByIdOrThrowsNotFoundException)
                 .toList();
@@ -156,7 +156,13 @@ public class AlunoService {
     }
     @Transactional
     public ResponseEntity<?> matricularAlunosEmLote(MatriculaEmLoteRequest request) {
-        List<Aluno> alunos = request.alunoIds().stream().map(this::findByIdOrThrowsNotFoundException).toList();
+        List<Aluno> alunos = request.alunoIds().stream()
+                .map(id -> {
+                    Aluno aluno = findByIdOrThrowsNotFoundException(id);
+                    if (!aluno.getAtivo()) aluno.setAtivo(true);
+
+                    return aluno;
+                }).toList();
 
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(request.cursoId());
 
@@ -178,8 +184,13 @@ public class AlunoService {
         return ResponseEntity.ok(alunos);
     }
 
-    public Aluno findByIdOrThrowsNotFoundException(Long id) {
+    public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
         return alunoRepository.findByIdAndAtivoIsTrue(id)
+                .orElseThrow(() -> alunoIdNotFound(id));
+    }
+
+    public Aluno findByIdOrThrowsNotFoundException(Long id) {
+        return alunoRepository.findById(id)
                 .orElseThrow(() -> alunoIdNotFound(id));
     }
 

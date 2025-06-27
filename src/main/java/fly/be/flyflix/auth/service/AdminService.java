@@ -25,19 +25,16 @@ public class AdminService {
     @Autowired
     private AdminRepository adminRepository;
     @Autowired
-    private UsuarioRepository usuarioRepository;
-    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private UsuarioService usuarioService;
 
     public ResponseEntity<Map<String, Object>> cadastrarAdmin(CadastroAdmin dados) {
-        if (usuarioRepository.existsByEmail(dados.email())) {
-            throw new BadRequestException("Email já está em uso");
-        }
-        if (usuarioRepository.existsByCpf(dados.cpf())) {
-            throw new BadRequestException("CPF já está cadastrado");
-        }
+        usuarioService.assertEmailIsNotRegistered(dados.email());
+        usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
+
 
         Admin admin = new Admin();
         admin.setNome(dados.nome());
@@ -76,10 +73,13 @@ public class AdminService {
     public ResponseEntity<Map<String, String>> atualizarAdmin(AtualizarAdminRequest dados) {
         Admin admin = findByIdOrThrowsNotFoundException(dados.id());
 
+        usuarioService.assertEmailIsNotRegistered(dados.email(), admin);
+        usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), admin);
+
         admin.setNome(dados.nome());
         admin.setEmail(dados.email());
         //admin.setDataNascimento(dados.dataNascimento());
-        admin.setAtivo(dados.ativo());
+        admin.setCpf(dados.cpf());
         adminRepository.save(admin);
 
         return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
@@ -89,8 +89,7 @@ public class AdminService {
         Admin adminToDesative = findByIdOrThrowsNotFoundException(id);
 
         adminToDesative.setAtivo(false);
-
-        usuarioRepository.save(adminToDesative);
+        adminRepository.save(adminToDesative);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Administrador removido com sucesso");

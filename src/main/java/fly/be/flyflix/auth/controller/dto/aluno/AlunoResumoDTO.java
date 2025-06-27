@@ -4,7 +4,15 @@ import fly.be.flyflix.auth.entity.Aluno;
 
 import java.time.LocalDate;
 
-public record AlunoResumoDTO(Long id, String nome, String cpf, String email, LocalDate dataNascimento, String urlFoto) {
+public record AlunoResumoDTO(
+        Long id,
+        String nome,
+        String cpf,
+        String email,
+        LocalDate dataNascimento,
+        Boolean ativo,
+        String urlFoto
+) {
     public AlunoResumoDTO(Aluno aluno, String urlFoto) {
         this(
                 aluno.getId(),
@@ -12,6 +20,7 @@ public record AlunoResumoDTO(Long id, String nome, String cpf, String email, Loc
                 aluno.getCpf(),
                 aluno.getEmail(),
                 aluno.getDataNascimento(),
+                aluno.getAtivo(),
                 urlFoto
         );
     }
