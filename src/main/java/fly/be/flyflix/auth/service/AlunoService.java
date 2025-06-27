@@ -8,6 +8,7 @@ import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
@@ -43,11 +44,14 @@ public class AlunoService {
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
 
+        LocalDate dataNascimento = dados.dataNascimento();
+        assertDataNascimentoValida(dataNascimento);
+
         Aluno aluno = new Aluno();
         aluno.setCpf(dados.cpf());
         aluno.setNome(dados.nome());
         aluno.setEmail(dados.email());
-        aluno.setDataNascimento(dados.dataNascimento());
+        aluno.setDataNascimento(dataNascimento);
         aluno.setAtivo(true);
         aluno.setRole(Role.ALUNO);
 
@@ -85,9 +89,12 @@ public class AlunoService {
         usuarioService.assertEmailIsNotRegistered(dados.email(), alunoToUpdate);
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), alunoToUpdate);
 
+        LocalDate dataNascimento = dados.dataNascimento();
+        assertDataNascimentoValida(dataNascimento);
+
         alunoToUpdate.setNome(dados.nome());
         alunoToUpdate.setEmail(dados.email());
-        alunoToUpdate.setDataNascimento(dados.dataNascimento());
+        alunoToUpdate.setDataNascimento(dataNascimento);
         alunoToUpdate.setCpf(dados.cpf());
         alunoRepository.save(alunoToUpdate);
 
@@ -196,5 +203,21 @@ public class AlunoService {
 
     public NotFoundException alunoIdNotFound(Long id) {
         return new NotFoundException("Aluno com id '%s' não encontrado".formatted(id));
+    }
+
+    public void assertDataNascimentoValida(LocalDate dataNascimento) {
+        boolean isLessThan100YearsOld = dataNascimento.isAfter(LocalDate.now().minusYears(100));
+        boolean isAtLeast10YearsOld = dataNascimento.isBefore(LocalDate.now().minusYears(10));
+
+        boolean isDataValida = isAtLeast10YearsOld && isLessThan100YearsOld;
+
+        if(!isDataValida) throwsDataNascimentoInvalida();
+    }
+
+    private void throwsDataNascimentoInvalida() {
+        LocalDate cemAnosAtras = LocalDate.now().minusYears(100);
+        LocalDate dezAnosAtras = LocalDate.now().minusYears(10);
+
+        throw new BadRequestException("Data nascimento deve ser entre %s e %s".formatted(cemAnosAtras, dezAnosAtras));
     }
 }
