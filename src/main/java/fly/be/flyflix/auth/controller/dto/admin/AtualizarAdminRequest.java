@@ -10,6 +10,5 @@ public record AtualizarAdminRequest(
         @NotNull Long id,
         @NotBlank String nome,
         @NotBlank @Email String email,
-        LocalDate dataNascimento,
-        boolean ativo
+        LocalDate dataNascimento
 ) {}
