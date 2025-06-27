@@ -90,7 +90,7 @@ public class AlunoService {
         alunoToUpdate.setNome(dados.nome());
         alunoToUpdate.setEmail(dados.email());
         alunoToUpdate.setDataNascimento(dados.dataNascimento());
-        alunoToUpdate.setAtivo(dados.ativo());
+        alunoToUpdate.setCpf(dados.cpf());
         alunoRepository.save(alunoToUpdate);
 
         return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));

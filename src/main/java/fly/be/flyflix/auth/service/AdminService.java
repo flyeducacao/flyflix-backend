@@ -79,7 +79,7 @@ public class AdminService {
         admin.setNome(dados.nome());
         admin.setEmail(dados.email());
         //admin.setDataNascimento(dados.dataNascimento());
-        admin.setAtivo(dados.ativo());
+        admin.setCpf(dados.cpf());
         adminRepository.save(admin);
 
         return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));

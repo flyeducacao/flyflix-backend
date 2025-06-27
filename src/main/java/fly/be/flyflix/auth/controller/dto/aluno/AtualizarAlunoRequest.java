@@ -15,6 +15,7 @@ public record AtualizarAlunoRequest(
         @NotBlank(message = "Email é obrigatório")
         @Email(message = "O email deve ser válido")
         String email,
+        @NotBlank String cpf,
         @NotNull(message = "Data de nascimento é obrigatória")
         @Past(message = "Data de nascimento inválida")
         LocalDate dataNascimento
