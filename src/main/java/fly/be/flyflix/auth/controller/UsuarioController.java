@@ -2,6 +2,8 @@ package fly.be.flyflix.auth.controller;
 
 import fly.be.flyflix.auth.controller.dto.FotoUploadDTO;
 import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
+import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
+import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
@@ -16,6 +18,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,9 +34,17 @@ public class UsuarioController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    /**
-     * Upload da foto de perfil do usuário.
-     */
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioByGetMe> getMe() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        long usuarioId = Long.parseLong(authentication.getName());
+
+        UsuarioByGetMe response = usuarioService.getMe(usuarioId);
+
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(
             summary = "Upload da foto de perfil do usuário",
             requestBody = @RequestBody(

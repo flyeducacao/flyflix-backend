@@ -1,5 +1,6 @@
 package fly.be.flyflix.auth.service;
 
+import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.AlunoRepository;
@@ -90,8 +91,11 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    public UsuarioByGetMe getMe(Long usuarioId) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
 
-
+        return UsuarioByGetMe.by(usuario);
+    }
 
     public byte[] obterFoto(Long id) {
         Usuario usuario = findByIdOrThrowsNotFoundException(id);
