@@ -11,6 +11,7 @@ import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.service.CursoService;
+import fly.be.flyflix.auth.util.CpfValidator;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ public class AlunoService {
 
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
+        CpfValidator.validarCpf(dados.cpf());
 
         LocalDate dataNascimento = dados.dataNascimento();
         assertDataNascimentoValida(dataNascimento);
@@ -88,6 +90,7 @@ public class AlunoService {
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), alunoToUpdate);
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), alunoToUpdate);
+        CpfValidator.validarCpf(dados.cpf());
 
         LocalDate dataNascimento = dados.dataNascimento();
         assertDataNascimentoValida(dataNascimento);
