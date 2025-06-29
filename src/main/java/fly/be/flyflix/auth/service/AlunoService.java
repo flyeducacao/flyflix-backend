@@ -55,8 +55,9 @@ public class AlunoService {
         aluno.setAtivo(true);
         aluno.setRole(Role.ALUNO);
 
-        String senhaTemp = UUID.randomUUID().toString().substring(0, 8);
+        String senhaTemp = SenhaGenerator.gerarSenhaTemporaria();
         aluno.setSenha(passwordEncoder.encode(senhaTemp));
+
 
         alunoRepository.save(aluno);
 
@@ -98,7 +99,7 @@ public class AlunoService {
         alunoToUpdate.setCpf(dados.cpf());
         alunoRepository.save(alunoToUpdate);
 
-        return ResponseEntity.ok(Map.<String, Object>of("message", "Aluno atualizado com sucesso"));
+        return ResponseEntity.ok(Map.of("message", "Aluno atualizado com sucesso"));
     }
 
     public ResponseEntity<Map<String, Object>> removerAluno(long id) {

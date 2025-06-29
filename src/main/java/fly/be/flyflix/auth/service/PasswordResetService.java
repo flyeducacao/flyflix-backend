@@ -1,7 +1,7 @@
 package fly.be.flyflix.auth.service;
 
-import fly.be.flyflix.auth.controller.dto.RedefinicaoSenhaDTO;
-import fly.be.flyflix.auth.controller.dto.RequisicaoResetSenhaDTO;
+import fly.be.flyflix.auth.controller.dto.senha.RedefinicaoSenhaDTO;
+import fly.be.flyflix.auth.controller.dto.senha.RequisicaoResetSenhaDTO;
 import fly.be.flyflix.auth.entity.PasswordResetToken;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;

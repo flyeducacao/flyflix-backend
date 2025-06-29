@@ -69,7 +69,6 @@ public class AlunoController {
 
     @PostMapping("/matricula-em-lote")
     public ResponseEntity<?> matriculaEmLote(@RequestBody MatriculaEmLoteRequest request) {
-
         return alunoService.matricularAlunosEmLote(request);
     }
     @GetMapping("/por-curso/{cursoId}")
