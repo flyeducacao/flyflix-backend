@@ -7,6 +7,7 @@ import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
+import fly.be.flyflix.auth.util.CpfValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ public class AdminService {
     public ResponseEntity<Map<String, Object>> cadastrarAdmin(CadastroAdmin dados) {
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
+        CpfValidator.validarCpf(dados.cpf());
 
 
         Admin admin = new Admin();
@@ -71,6 +73,7 @@ public class AdminService {
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), admin);
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf(), admin);
+        CpfValidator.validarCpf(dados.cpf());
 
         admin.setNome(dados.nome());
         admin.setEmail(dados.email());
