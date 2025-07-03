@@ -15,8 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-
 @RestController
 @RequestMapping("/api/modulos")
 public class ModuloController {
@@ -47,9 +45,9 @@ public class ModuloController {
     }
 
     @PutMapping
-    @Transactional
-    public ResponseEntity<Modulo> atualizar(@RequestBody @Valid AtualizacaoModulo dados) {
-        return ResponseEntity.ok(service.atualizar(dados));
+    public ResponseEntity<Void> atualizar(@RequestBody @Valid AtualizacaoModulo dados) {
+        service.atualizar(dados);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

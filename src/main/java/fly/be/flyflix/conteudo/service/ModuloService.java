@@ -26,13 +26,11 @@ public class ModuloService {
         return moduloRepository.save(modulo);
     }
 
-    @Transactional
-    public Modulo atualizar(AtualizacaoModulo dados) {
+    public void atualizar(AtualizacaoModulo dados) {
         Modulo modulo = findByIdOrThrowsNotFoundException(dados.id());
-
         modulo.setTitulo(dados.titulo());
-        // A ordem será atualizada no CursoModulo
-        return modulo;
+
+        moduloRepository.save(modulo);
     }
 
     @Transactional
