@@ -63,18 +63,20 @@ public class AlunoService {
 
         alunoRepository.save(aluno);
 
+        String urlLogin = "https://flyeducacao.org";
         String assunto = "Sua conta FlyFlix está pronta!";
         String corpo = String.format(
                 "<p>Oi, %s!</p>" +
                         "<p>Sua conta FlyFlix já está no sistema — 100%% conectada! 💻<br>" +
                         "Sua senha temporária de acesso é: <strong>%s</strong></p>" +
                         "<p>Recomendo trocar assim que logar, pra manter tudo seguro e sob controle.</p>" +
-                        "<p>Agora é só clicar aqui para dar login e curtir essa nova fase com a gente!<br>" +
+                        "<p>Agora é só clicar <a href=\"%s\">aqui</a> para dar login e curtir essa nova fase com a gente!<br>" +
                         "Se der qualquer bug, chama a gente rapidinho! 😉</p>" +
                         "<p>Abraço digital,<br>" +
                         "Equipe Fly 🤖</p>",
                 dados.nome(),
-                senhaTemp
+                senhaTemp,
+                urlLogin
         );
 
 
