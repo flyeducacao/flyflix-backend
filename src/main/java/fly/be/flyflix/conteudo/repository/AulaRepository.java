@@ -29,4 +29,8 @@ public interface AulaRepository extends JpaRepository<Aula, Long> {
 """)
     List<AulaResumoDTO> findAulasResumoByCursoId(@Param("cursoId") Long cursoId);
 
+    @Query("""
+    SELECT COALESCE(MAX(a.ordem), 0) FROM Aula a WHERE a.modulo.id = :moduloId
+    """)
+    Integer findMaxOrdemByModuloId(@Param("moduloId") Long moduloId);
 }
