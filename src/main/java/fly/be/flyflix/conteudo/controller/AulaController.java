@@ -1,6 +1,7 @@
 package fly.be.flyflix.conteudo.controller;
 
 import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
+import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
@@ -33,13 +34,17 @@ public class AulaController {
 
     @PostMapping
     @Transactional
-    public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAula dados) {
+    public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAulaSemOrdem dados) {
         var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
+
+        // Busca a maior ordem já existente no banco de dados para o módulo e acrescenta (o+1)
+        Integer maiorOrdem = aulaRepository.findMaxOrdemByModuloId(modulo.getId());
+        int novaOrdem = maiorOrdem != null ? maiorOrdem + 1 : 1;
 
         var aula = Aula.builder()
                 .titulo(dados.titulo())
                 .tipo(dados.tipo())
-                .ordem(dados.ordem())
+                .ordem(novaOrdem)
                 .duracaoEstimada(dados.duracaoEstimada())
                 .linkConteudo(dados.linkConteudo())
                 .modulo(modulo)
