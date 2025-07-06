@@ -91,7 +91,7 @@ public class UsuarioService {
     public UsuarioByGetMe getMe(Long usuarioId) {
         Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
 
-        return UsuarioByGetMe.by(usuario);
+        return UsuarioByGetMe.by(usuario, "/usuarios/%s/foto".formatted(usuario.getId()));
     }
 
     public byte[] obterFoto(Long id) {
