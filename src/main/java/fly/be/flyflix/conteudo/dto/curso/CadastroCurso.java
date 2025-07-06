@@ -7,11 +7,9 @@ import java.util.List;
 
 public record CadastroCurso(
         String titulo,
-        //String descricao,
-        //String imagemCapa,
-        List<Long> modulosIds,
-        Long autorId  // novo campo para identificar o autor do curso
+        Long autorId
 ) {}
+
 
 
 

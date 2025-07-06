@@ -12,13 +12,26 @@ import java.util.Optional;
 
 @Repository
 public interface CursoRepository extends JpaRepository<Curso, Long> {
-    @EntityGraph(attributePaths = {"cursoModulos", "cursoModulos.modulo", "cursoModulos.modulo.aulas"})
-    Optional<Curso> findById(Long id);
-    @EntityGraph(attributePaths = {"cursoModulos", "cursoModulos.modulo", "cursoModulos.modulo.aulas"})
-    Optional<Curso> findWithModulosAndAulasById(Long id);
 
+    // ✅ Busca curso com módulos e aulas carregadas
+    @EntityGraph(attributePaths = {
+            "cursoModulos",
+            "cursoModulos.modulo",
+            "cursoModulos.modulo.aulas"
+    })
+    Optional<Curso> findCursoWithModulosAndAulasById(Long id);
+
+    // ✅ Busca curso com autor e módulos (sem aulas)
+    @EntityGraph(attributePaths = {
+            "autor",
+            "cursoModulos",
+            "cursoModulos.modulo"
+    })
+    Optional<Curso> findCursoWithAutorAndModulosById(Long id);
+
+    // ✅ Busca os 10 cursos mais recentes (sem relacionamentos)
     List<Curso> findTop10ByOrderByDataPublicacaoDesc();
-
 }
+
 
 
