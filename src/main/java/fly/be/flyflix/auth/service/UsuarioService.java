@@ -103,7 +103,7 @@ public class UsuarioService {
 
         try {
             // Caminho do recurso dentro de src/main/resources
-            InputStream inputStream = getClass().getResourceAsStream("/static/imagens/sem-foto.jpg");
+            InputStream inputStream = getClass().getResourceAsStream("/static/imagens/UserPattern.png");
             if (inputStream == null) throw new FileNotFoundException("Imagem padrão não encontrada");
             return inputStream.readAllBytes();
         } catch (IOException e) {
