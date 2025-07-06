@@ -92,31 +92,17 @@ public class CursoController {
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")
     @Transactional
-    public ResponseEntity<Void> adicionarModuloAoCurso(
+    public ResponseEntity<String> adicionarOuAlterarOrdemModuloAoCurso(
             @PathVariable Long idCurso,
             @PathVariable Long idModulo,
-            @RequestParam(required = false) Integer ordem // ordem opcional, pode definir aqui
+            @RequestParam(required = false) Integer ordem
     ) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(idCurso);
-
-        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
-
-        // Verificar se já existe associação para evitar duplicidade
-        boolean existe = cursoModuloRepository.existsByCursoAndModulo(curso, modulo);
-        if (existe) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // ou outro tratamento
-        }
-
-        // Definir uma ordem padrão, se não informada
-        if (ordem == null) {
-            ordem = 1; // ou lógica para pegar última ordem + 1
-        }
-
-        CursoModulo cursoModulo = new CursoModulo(curso, modulo, ordem);
-        cursoModuloRepository.save(cursoModulo);
-
-        return ResponseEntity.ok().build();
+        cursoService.adicionarOuAtualizarModuloNoCurso(idCurso, idModulo, ordem);
+        return ResponseEntity.ok("Módulo adicionado ou ordem atualizada com sucesso.");
     }
+
+
+
 
     @GetMapping("/{id}/modulos")
     public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
