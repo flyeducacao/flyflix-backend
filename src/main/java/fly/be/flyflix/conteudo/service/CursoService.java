@@ -161,4 +161,8 @@ public class CursoService {
 
         return DetalhamentoCurso.by(curso);
     }
+
+    public void remover(Long id) {
+        cursoRepository.delete(findByIdOrThrowsNotFoundException(id));
+    }
 }

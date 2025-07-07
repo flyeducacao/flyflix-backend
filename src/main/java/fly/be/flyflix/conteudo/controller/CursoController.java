@@ -75,7 +75,7 @@ public class CursoController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> remover(@PathVariable Long id) {
-        cursoRepository.delete(cursoService.findByIdOrThrowsNotFoundException(id));
+        cursoService.remover(id);
 
         return ResponseEntity.noContent().build();
     }
