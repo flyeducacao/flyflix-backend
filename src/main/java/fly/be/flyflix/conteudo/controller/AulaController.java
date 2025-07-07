@@ -67,20 +67,10 @@ public class AulaController {
     }
 
     @PutMapping
-    @Transactional
     public ResponseEntity<Void> atualizar(@RequestBody @Valid DadosAtualizacaoAula dados) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(dados.id());
+        aulaService.atualizar(dados);
 
-        var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
-
-        aula.setTitulo(dados.titulo());
-        aula.setTipo(dados.tipo());
-        aula.setOrdem(dados.ordem());
-        aula.setDuracaoEstimada(dados.duracaoEstimada());
-        aula.setLinkConteudo(dados.linkConteudo());
-        aula.setModulo(modulo);
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

@@ -1,12 +1,14 @@
 package fly.be.flyflix.conteudo.service;
 
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
+import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,5 +84,20 @@ public class AulaService {
         if (capa == null) throw new NotFoundException("Capa não encontrada");
 
         return capa;
+    }
+
+    public void atualizar(DadosAtualizacaoAula dados) {
+        Aula aula = findByIdOrThrowsNotFoundException(dados.id());
+
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
+
+        aula.setTitulo(dados.titulo());
+        aula.setTipo(dados.tipo());
+        aula.setOrdem(dados.ordem());
+        aula.setDuracaoEstimada(dados.duracaoEstimada());
+        aula.setLinkConteudo(dados.linkConteudo());
+        aula.setModulo(modulo);
+
+        aulaRepository.save(aula);
     }
 }
