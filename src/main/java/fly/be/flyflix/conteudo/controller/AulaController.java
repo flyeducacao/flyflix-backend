@@ -52,17 +52,9 @@ public class AulaController {
             @PathVariable Long id,
             @Parameter(description = "Imagem da capa", required = true)
             @RequestParam("imagem") MultipartFile imagem) throws Exception {
+        aulaService.uploadCapa(id, imagem);
 
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
-
-        var tipo = imagem.getContentType();
-        if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
-            throw new BadRequestException("Tipo de imagem inválido (JPEG ou PNG)");
-        }
-
-        aula.setCapa(imagem.getBytes());
-        aulaRepository.save(aula);
-        return ResponseEntity.ok("Imagem da capa salva com sucesso.");
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{id}/capa")

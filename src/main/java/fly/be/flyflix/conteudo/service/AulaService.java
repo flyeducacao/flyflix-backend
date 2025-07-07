@@ -5,12 +5,15 @@ import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -98,5 +101,17 @@ public class AulaService {
     public Aula findByIdOrThrowsNotFoundException(Long id) {
         return aulaRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Aula com id '%s' não encontrado".formatted(id)));
+    }
+
+    public void uploadCapa(Long id, MultipartFile imagem) throws IOException {
+        var aula = findByIdOrThrowsNotFoundException(id);
+
+        var tipo = imagem.getContentType();
+        if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
+            throw new BadRequestException("Tipo de imagem inválido (JPEG ou PNG)");
+        }
+
+        aula.setCapa(imagem.getBytes());
+        aulaRepository.save(aula);
     }
 }
