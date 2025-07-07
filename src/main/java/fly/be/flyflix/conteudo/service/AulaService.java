@@ -1,6 +1,7 @@
 package fly.be.flyflix.conteudo.service;
 
 import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
+import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Modulo;
@@ -21,23 +22,26 @@ public class AulaService {
     @Autowired
     private ModuloService moduloService;
 
-    @Transactional
-    public Aula cadastrar(CadastroAula dados) {
-        Aula aula = new Aula();
-        aula.setTitulo(dados.titulo());
-        aula.setTipo(dados.tipo());
-        aula.setOrdem(dados.ordem());
-        aula.setDuracaoEstimada(dados.duracaoEstimada());
-        aula.setLinkConteudo(dados.linkConteudo());
+    public void cadastrar(CadastroAulaSemOrdem dados) {
+        System.out.println(dados);
+        var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
+        System.out.println(modulo);
 
-        // Se quiser permitir aula sem módulo, pode fazer assim:
-        Long moduloId = dados.moduloId();
-        if (moduloId != null) {
-            Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
-            aula.setModulo(modulo);
-        }
+        Integer maiorOrdem = aulaRepository.findMaxOrdemByModuloId(modulo.getId());
+        int novaOrdem = maiorOrdem != null ? maiorOrdem + 1 : 1;
+        System.out.println(maiorOrdem);
 
-        return aulaRepository.save(aula);
+        var aula = Aula.builder()
+                .titulo(dados.titulo())
+                .tipo(dados.tipo())
+                .ordem(novaOrdem)
+                .duracaoEstimada(dados.duracaoEstimada())
+                .linkConteudo(dados.linkConteudo())
+                .modulo(modulo)
+                .build();
+        System.out.println(aula);
+
+        aulaRepository.save(aula);
     }
 
     public List<Aula> listarPorModulo(Long moduloId) {

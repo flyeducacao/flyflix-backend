@@ -33,24 +33,9 @@ public class AulaController {
     private AulaService aulaService;
 
     @PostMapping
-    @Transactional
     public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAulaSemOrdem dados) {
-        var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
+        aulaService.cadastrar(dados);
 
-        // Busca a maior ordem já existente no banco de dados para o módulo e acrescenta (o+1)
-        Integer maiorOrdem = aulaRepository.findMaxOrdemByModuloId(modulo.getId());
-        int novaOrdem = maiorOrdem != null ? maiorOrdem + 1 : 1;
-
-        var aula = Aula.builder()
-                .titulo(dados.titulo())
-                .tipo(dados.tipo())
-                .ordem(novaOrdem)
-                .duracaoEstimada(dados.duracaoEstimada())
-                .linkConteudo(dados.linkConteudo())
-                .modulo(modulo)
-                .build();
-
-        aulaRepository.save(aula);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
