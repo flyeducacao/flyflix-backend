@@ -8,7 +8,6 @@ import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,10 +17,8 @@ import java.util.List;
 
 @Service
 public class AulaService {
-
     @Autowired
     private AulaRepository aulaRepository;
-
     @Autowired
     private ModuloService moduloService;
 

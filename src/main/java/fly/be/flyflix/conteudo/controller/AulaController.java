@@ -3,10 +3,7 @@ package fly.be.flyflix.conteudo.controller;
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
-import fly.be.flyflix.conteudo.repository.AulaRepository;
 import fly.be.flyflix.conteudo.service.AulaService;
-import fly.be.flyflix.conteudo.service.ModuloService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,10 +20,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/aulas")
 public class AulaController {
-    @Autowired
-    private AulaRepository aulaRepository;
-    @Autowired
-    private ModuloService moduloService;
     @Autowired
     private AulaService aulaService;
 
