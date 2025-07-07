@@ -82,9 +82,9 @@ public class CursoController {
 
     @PostMapping("/{cursoId}/modulos/{moduloId}")
     public ResponseEntity<?> adicionarModulo(@PathVariable Long cursoId, @PathVariable Long moduloId) {
-        Curso cursoAtualizado = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
+        DetalhamentoCurso response = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
 
-        return ResponseEntity.ok(DetalhamentoCurso.by(cursoAtualizado));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")

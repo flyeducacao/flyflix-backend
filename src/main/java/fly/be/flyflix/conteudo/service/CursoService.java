@@ -56,8 +56,9 @@ public class CursoService {
 
         cursoRepository.save(curso);
     }
+
     @Transactional
-    public Curso adicionarModuloAoCurso(Long cursoId, Long moduloId) {
+    public DetalhamentoCurso adicionarModuloAoCurso(Long cursoId, Long moduloId) {
         Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new NotFoundException("Curso não encontrado"));
 
@@ -77,8 +78,7 @@ public class CursoService {
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
         cursoModuloRepository.save(cursoModulo);
 
-        // curso.getAutor() e curso.getCursoModulos() estarão prontos para uso no DTO
-        return curso;
+        return DetalhamentoCurso.by(curso);
     }
 
 
