@@ -4,6 +4,7 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
+import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
@@ -15,8 +16,6 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -35,11 +34,7 @@ public class CursoService {
     @Autowired
     private UsuarioService usuarioService;
 
-    @Transactional
-    public Curso cadastrarCurso(CadastroCurso dados) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.valueOf(authentication.getName());
-
+    public DetalhamentoCurso cadastrarCurso(CadastroCurso dados, Long userId) {
         Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
 
         Curso curso = Curso.builder()
@@ -48,7 +43,9 @@ public class CursoService {
                 .autor(autor)
                 .build();
 
-        return cursoRepository.save(curso);
+        Curso response = cursoRepository.save(curso);
+
+        return DetalhamentoCurso.by(response);
     }
 
     @Transactional

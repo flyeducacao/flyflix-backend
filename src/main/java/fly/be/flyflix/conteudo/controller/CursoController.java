@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -42,15 +43,13 @@ public class CursoController {
     private ModuloService moduloService;
 
     @PostMapping
-    public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados) {
-        try {
-            Curso curso = cursoService.cadastrarCurso(dados);
-            return ResponseEntity
-                    .created(URI.create("/api/cursos/" + curso.getId()))
-                    .body(DetalhamentoCurso.by(curso));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados, Authentication authentication) {
+        Long requestingUserId = Long.valueOf(authentication.getName());
+
+        DetalhamentoCurso response = cursoService.cadastrarCurso(dados, requestingUserId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @GetMapping
