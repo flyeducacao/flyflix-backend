@@ -37,6 +37,8 @@ public class CursoService {
     private ModuloService moduloService;
     @Autowired
     private UsuarioService usuarioService;
+    @Autowired
+    private CursoModuloService cursoModuloService;
 
     public DetalhamentoCurso cadastrarCurso(CadastroCurso dados, Long userId) {
         Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
@@ -176,5 +178,16 @@ public class CursoService {
         return modulos.stream()
                 .map(ModuloByListarPorCurso::by)
                 .toList();
+    }
+
+    @Transactional
+    public void removerModulo(Long idCurso, Long idModulo) {
+        Curso curso = findByIdOrThrowsNotFoundException(idCurso);
+
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
+
+        CursoModulo cursoModulo = cursoModuloService.findByCursoAndModuloOrThrowsNotFoundException(curso, modulo);
+
+        curso.getCursoModulos().remove(cursoModulo);
     }
 }

@@ -107,24 +107,9 @@ public class CursoController {
     }
 
     @DeleteMapping("/{idCurso}/modulos/{idModulo}")
-    @Transactional
     public ResponseEntity<String> removerModuloDoCurso(@PathVariable Long idCurso, @PathVariable Long idModulo) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(idCurso);
+        cursoService.removerModulo(idCurso, idModulo);
 
-        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
-
-        Optional<CursoModulo> cursoModuloOpt = cursoModuloRepository.findByCursoAndModulo(curso, modulo);
-        if (cursoModuloOpt.isEmpty()) {
-            throw new NotFoundException("Associação entre curso e módulo não encontrada.");
-        }
-
-        CursoModulo cursoModulo = cursoModuloOpt.get();
-
-        curso.getCursoModulos().remove(cursoModulo);
-        modulo.getCursoModulos().remove(cursoModulo);
-
-        cursoModuloRepository.delete(cursoModulo);
-
-        return ResponseEntity.ok("Módulo removido com sucesso.");
+        return ResponseEntity.noContent().build();
     }
 }
