@@ -61,9 +61,9 @@ public class CursoController {
     @GetMapping("/{id}")
     @Transactional
     public ResponseEntity<DetalhamentoCurso> detalhar(@PathVariable Long id) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(id);
+        DetalhamentoCurso response = cursoService.detalhar(id);
 
-        return ResponseEntity.ok(DetalhamentoCurso.by(curso));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")

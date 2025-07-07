@@ -155,4 +155,10 @@ public class CursoService {
 
         return cursos.map(DetalhamentoCurso::by);
     }
+
+    public DetalhamentoCurso detalhar(Long id) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+
+        return DetalhamentoCurso.by(curso);
+    }
 }
