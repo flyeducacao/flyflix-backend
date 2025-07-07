@@ -1,14 +1,9 @@
 package fly.be.flyflix.conteudo.controller;
 
-import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
-import fly.be.flyflix.conteudo.entity.Aula;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
-import fly.be.flyflix.conteudo.repository.AulaRepository;
 import fly.be.flyflix.conteudo.service.AulaService;
-import fly.be.flyflix.conteudo.service.ModuloService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,50 +21,20 @@ import java.util.List;
 @RequestMapping("/api/aulas")
 public class AulaController {
     @Autowired
-    private AulaRepository aulaRepository;
-    @Autowired
-    private ModuloService moduloService;
-    @Autowired
     private AulaService aulaService;
 
     @PostMapping
-    @Transactional
     public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAulaSemOrdem dados) {
-        var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
+        aulaService.cadastrar(dados);
 
-        // Busca a maior ordem já existente no banco de dados para o módulo e acrescenta (o+1)
-        Integer maiorOrdem = aulaRepository.findMaxOrdemByModuloId(modulo.getId());
-        int novaOrdem = maiorOrdem != null ? maiorOrdem + 1 : 1;
-
-        var aula = Aula.builder()
-                .titulo(dados.titulo())
-                .tipo(dados.tipo())
-                .ordem(novaOrdem)
-                .duracaoEstimada(dados.duracaoEstimada())
-                .linkConteudo(dados.linkConteudo())
-                .modulo(modulo)
-                .build();
-
-        aulaRepository.save(aula);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping
     public ResponseEntity<List<DadosDetalhamentoAula>> listar() {
-        var aulas = aulaRepository.findAll().stream().map(aula ->
-                new DadosDetalhamentoAula(
-                        aula.getId(),
-                        aula.getTitulo(),
-                        aula.getTipo(),
-                        aula.getOrdem(),
-                        aula.getDuracaoEstimada(),
-                        aula.getLinkConteudo(),
-                        aula.getModulo() != null ? aula.getModulo().getId() : null,
-                        "/api/aulas/" + aula.getId() + "/capa"
-                )
-        ).toList();
+        List<DadosDetalhamentoAula> response = aulaService.listar();
 
-        return ResponseEntity.ok(aulas);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Upload da capa da aula")
@@ -80,72 +45,39 @@ public class AulaController {
             @PathVariable Long id,
             @Parameter(description = "Imagem da capa", required = true)
             @RequestParam("imagem") MultipartFile imagem) throws Exception {
+        aulaService.uploadCapa(id, imagem);
 
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
-
-        var tipo = imagem.getContentType();
-        if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
-            throw new BadRequestException("Tipo de imagem inválido (JPEG ou PNG)");
-        }
-
-        aula.setCapa(imagem.getBytes());
-        aulaRepository.save(aula);
-        return ResponseEntity.ok("Imagem da capa salva com sucesso.");
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{id}/capa")
     public ResponseEntity<byte[]> getCapa(@PathVariable Long id) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
-
-        if (aula.getCapa() == null) {
-            return ResponseEntity.notFound().build();
-        }
+        byte[] response = aulaService.getCapa(id);
 
         return ResponseEntity.ok()
-                .header("Content-Type", "image/jpeg") // opcional: salvar tipo MIME no banco para maior controle
-                .body(aula.getCapa());
+                .header("Content-Type", "image/jpeg")
+                .body(response);
     }
 
     @PutMapping
-    @Transactional
     public ResponseEntity<Void> atualizar(@RequestBody @Valid DadosAtualizacaoAula dados) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(dados.id());
+        aulaService.atualizar(dados);
 
-        var modulo = moduloService.findByIdOrThrowsNotFoundException(dados.moduloId());
-
-        aula.setTitulo(dados.titulo());
-        aula.setTipo(dados.tipo());
-        aula.setOrdem(dados.ordem());
-        aula.setDuracaoEstimada(dados.duracaoEstimada());
-        aula.setLinkConteudo(dados.linkConteudo());
-        aula.setModulo(modulo);
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<Void> remover(@PathVariable Long id) {
-        aulaRepository.delete(aulaService.findByIdOrThrowsNotFoundException(id));
+        aulaService.remover(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<DadosDetalhamentoAula> detalhar(@PathVariable Long id) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
+        DadosDetalhamentoAula response = aulaService.detalhar(id);
 
-        var dto = new DadosDetalhamentoAula(
-                aula.getId(),
-                aula.getTitulo(),
-                aula.getTipo(),
-                aula.getOrdem(),
-                aula.getDuracaoEstimada(),
-                aula.getLinkConteudo(),
-                aula.getModulo() != null ? aula.getModulo().getId() : null,
-                "/api/aulas/" + aula.getId() + "/capa"
-        );
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(response);
     }
 }
 
