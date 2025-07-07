@@ -59,15 +59,11 @@ public class AulaController {
 
     @GetMapping("/{id}/capa")
     public ResponseEntity<byte[]> getCapa(@PathVariable Long id) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
-
-        if (aula.getCapa() == null) {
-            return ResponseEntity.notFound().build();
-        }
+        byte[] response = aulaService.getCapa(id);
 
         return ResponseEntity.ok()
-                .header("Content-Type", "image/jpeg") // opcional: salvar tipo MIME no banco para maior controle
-                .body(aula.getCapa());
+                .header("Content-Type", "image/jpeg")
+                .body(response);
     }
 
     @PutMapping
