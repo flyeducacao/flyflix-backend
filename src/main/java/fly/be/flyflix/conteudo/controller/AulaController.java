@@ -82,19 +82,9 @@ public class AulaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<DadosDetalhamentoAula> detalhar(@PathVariable Long id) {
-        var aula = aulaService.findByIdOrThrowsNotFoundException(id);
+        DadosDetalhamentoAula response = aulaService.detalhar(id);
 
-        var dto = new DadosDetalhamentoAula(
-                aula.getId(),
-                aula.getTitulo(),
-                aula.getTipo(),
-                aula.getOrdem(),
-                aula.getDuracaoEstimada(),
-                aula.getLinkConteudo(),
-                aula.getModulo() != null ? aula.getModulo().getId() : null,
-                "/api/aulas/" + aula.getId() + "/capa"
-        );
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(response);
     }
 }
 

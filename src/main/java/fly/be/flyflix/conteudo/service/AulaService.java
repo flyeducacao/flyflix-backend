@@ -104,4 +104,19 @@ public class AulaService {
     public void remover(Long id) {
         aulaRepository.delete(findByIdOrThrowsNotFoundException(id));
     }
+
+    public DadosDetalhamentoAula detalhar(Long id) {
+        Aula aula = findByIdOrThrowsNotFoundException(id);
+
+        return new DadosDetalhamentoAula(
+                aula.getId(),
+                aula.getTitulo(),
+                aula.getTipo(),
+                aula.getOrdem(),
+                aula.getDuracaoEstimada(),
+                aula.getLinkConteudo(),
+                aula.getModulo() != null ? aula.getModulo().getId() : null,
+                "/api/aulas/" + aula.getId() + "/capa"
+        );
+    }
 }
