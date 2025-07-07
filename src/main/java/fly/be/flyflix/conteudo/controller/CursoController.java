@@ -95,16 +95,13 @@ public class CursoController {
             @RequestParam(required = false) Integer ordem
     ) {
         cursoService.adicionarOuAtualizarModuloNoCurso(idCurso, idModulo, ordem);
+
         return ResponseEntity.ok("Módulo adicionado ou ordem atualizada com sucesso.");
     }
 
     @GetMapping("/{id}/modulos")
     public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
-        cursoService.findByIdOrThrowsNotFoundException(id);
-
-        List<ModuloByListarPorCurso> resposta = moduloRepository.findByCursoId(id).stream()
-                .map(ModuloByListarPorCurso::by)
-                .toList();
+        List<ModuloByListarPorCurso> resposta = cursoService.listarModulosPorCurso(id);
 
         return ResponseEntity.ok(resposta);
     }

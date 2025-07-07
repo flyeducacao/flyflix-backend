@@ -5,6 +5,7 @@ import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -164,5 +166,15 @@ public class CursoService {
 
     public void remover(Long id) {
         cursoRepository.delete(findByIdOrThrowsNotFoundException(id));
+    }
+
+    public List<ModuloByListarPorCurso> listarModulosPorCurso(Long id) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+
+        List<Modulo> modulos = moduloService.listarPorCurso(curso);
+
+        return modulos.stream()
+                .map(ModuloByListarPorCurso::by)
+                .toList();
     }
 }
