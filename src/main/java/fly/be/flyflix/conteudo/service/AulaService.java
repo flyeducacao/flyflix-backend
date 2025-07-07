@@ -1,8 +1,8 @@
 package fly.be.flyflix.conteudo.service;
 
-import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
+import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
 import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
@@ -42,6 +42,23 @@ public class AulaService {
         System.out.println(aula);
 
         aulaRepository.save(aula);
+    }
+
+    public List<DadosDetalhamentoAula> listar() {
+        List<Aula> aulas = aulaRepository.findAll();
+
+        return aulas.stream().map(aula ->
+                new DadosDetalhamentoAula(
+                        aula.getId(),
+                        aula.getTitulo(),
+                        aula.getTipo(),
+                        aula.getOrdem(),
+                        aula.getDuracaoEstimada(),
+                        aula.getLinkConteudo(),
+                        aula.getModulo() != null ? aula.getModulo().getId() : null,
+                        "/api/aulas/" + aula.getId() + "/capa"
+                )
+        ).toList();
     }
 
     public List<Aula> listarPorModulo(Long moduloId) {

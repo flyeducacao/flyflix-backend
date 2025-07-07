@@ -1,10 +1,8 @@
 package fly.be.flyflix.conteudo.controller;
 
-import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
-import fly.be.flyflix.conteudo.entity.Aula;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
 import fly.be.flyflix.conteudo.service.AulaService;
@@ -41,20 +39,9 @@ public class AulaController {
 
     @GetMapping
     public ResponseEntity<List<DadosDetalhamentoAula>> listar() {
-        var aulas = aulaRepository.findAll().stream().map(aula ->
-                new DadosDetalhamentoAula(
-                        aula.getId(),
-                        aula.getTitulo(),
-                        aula.getTipo(),
-                        aula.getOrdem(),
-                        aula.getDuracaoEstimada(),
-                        aula.getLinkConteudo(),
-                        aula.getModulo() != null ? aula.getModulo().getId() : null,
-                        "/api/aulas/" + aula.getId() + "/capa"
-                )
-        ).toList();
+        List<DadosDetalhamentoAula> response = aulaService.listar();
 
-        return ResponseEntity.ok(aulas);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Upload da capa da aula")
