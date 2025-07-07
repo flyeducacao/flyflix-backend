@@ -14,8 +14,6 @@ import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,8 +25,6 @@ import java.util.Optional;
 
 @Service
 public class CursoService {
-    private static final Logger log = LoggerFactory.getLogger(CursoService.class);
-
     @Autowired
     private CursoRepository cursoRepository;
     @Autowired

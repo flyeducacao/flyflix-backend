@@ -4,15 +4,7 @@ import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
 import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
-import fly.be.flyflix.conteudo.entity.Curso;
-import fly.be.flyflix.conteudo.entity.CursoModulo;
-import fly.be.flyflix.conteudo.entity.Modulo;
-import fly.be.flyflix.conteudo.exceptions.NotFoundException;
-import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
-import fly.be.flyflix.conteudo.repository.ModuloRepository;
 import fly.be.flyflix.conteudo.service.CursoService;
-import fly.be.flyflix.conteudo.service.ModuloService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,21 +17,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/cursos")
 public class CursoController {
     @Autowired
-    private CursoModuloRepository cursoModuloRepository;
-    @Autowired
-    private CursoRepository cursoRepository;
-    @Autowired
-    private ModuloRepository moduloRepository;
-    @Autowired
     private CursoService cursoService;
-    @Autowired
-    private ModuloService moduloService;
 
     @PostMapping
     public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados, Authentication authentication) {
