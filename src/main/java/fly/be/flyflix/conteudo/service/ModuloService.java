@@ -3,6 +3,7 @@ package fly.be.flyflix.conteudo.service;
 import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
+import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
@@ -11,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class ModuloService {
@@ -51,5 +54,9 @@ public class ModuloService {
     public Modulo findByIdOrThrowsNotFoundException(Long id) {
         return moduloRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Módulo com id '%s' não encontrado".formatted(id)));
+    }
+
+    public List<Modulo> listarPorCurso(Curso curso) {
+        return moduloRepository.findByCursoId(curso.getId());
     }
 }

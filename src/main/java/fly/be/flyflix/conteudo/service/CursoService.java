@@ -4,42 +4,37 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
+import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
-import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class CursoService {
-    private static final Logger log = LoggerFactory.getLogger(CursoService.class);
-
     @Autowired
     private CursoRepository cursoRepository;
-    @Autowired
-    private CursoModuloRepository cursoModuloRepository;
     @Autowired
     private ModuloService moduloService;
     @Autowired
     private UsuarioService usuarioService;
+    @Autowired
+    private CursoModuloService cursoModuloService;
 
-    @Transactional
-    public Curso cadastrarCurso(CadastroCurso dados) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.valueOf(authentication.getName());
-
+    public DetalhamentoCurso cadastrarCurso(CadastroCurso dados, Long userId) {
         Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
 
         Curso curso = Curso.builder()
@@ -48,47 +43,42 @@ public class CursoService {
                 .autor(autor)
                 .build();
 
-        return cursoRepository.save(curso);
+        Curso response = cursoRepository.save(curso);
+
+        return DetalhamentoCurso.by(response);
+    }
+
+    public void atualizarCurso(Long id, AtualizacaoCurso dados) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+        curso.setTitulo(dados.titulo());
+
+        cursoRepository.save(curso);
     }
 
     @Transactional
-    public Curso atualizarCurso(Long cursoId, AtualizacaoCurso dados) {
-        Curso curso = findByIdOrThrowsNotFoundException(cursoId);
-
-        if (dados.titulo() != null) curso.setTitulo(dados.titulo());
-        //if (dados.descricao() != null) curso.setDescricao(dados.descricao());
-        //if (dados.imagemCapa() != null) curso.setImagemCapa(dados.imagemCapa());
-
-        if (dados.autorId() != null) {
-            Usuario novoAutor = usuarioService.findByIdOrThrowsNotFoundException(dados.autorId());
-            curso.setAutor(novoAutor);
-        }
-
-        return cursoRepository.save(curso);
-    }
-    @Transactional
-    public Curso adicionarModuloAoCurso(Long cursoId, Long moduloId) {
+    public DetalhamentoCurso adicionarModuloAoCurso(Long cursoId, Long moduloId) {
         Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new NotFoundException("Curso não encontrado"));
 
         Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
 
-        boolean jaAssociado = curso.getCursoModulos().stream()
+        Set<CursoModulo> cursoModulos = curso.getCursoModulos();
+
+        boolean jaAssociado = cursoModulos.stream()
                 .anyMatch(cm -> cm.getModulo().getId().equals(moduloId));
         if (jaAssociado) {
             throw new BadRequestException("Módulo já está associado a este curso");
         }
 
-        int novaOrdem = curso.getCursoModulos().stream()
+        int novaOrdem = cursoModulos.stream()
                 .mapToInt(CursoModulo::getOrdem)
                 .max()
                 .orElse(0) + 1;
 
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
-        cursoModuloRepository.save(cursoModulo);
+        cursoModulos.add(cursoModulo);
 
-        // curso.getAutor() e curso.getCursoModulos() estarão prontos para uso no DTO
-        return curso;
+        return DetalhamentoCurso.by(curso);
     }
 
 
@@ -106,7 +96,6 @@ public class CursoService {
                     .filter(cm -> cm.getOrdem() >= novaOrdem && cm.getOrdem() < ordemAtual)
                     .forEach(cm -> {
                         cm.setOrdem(cm.getOrdem() + 1);
-                        cursoModuloRepository.save(cm);
                     });
         } else {
             // Mover módulo para posição posterior — diminuir ordem dos módulos entre ordemAtual +1 e novaOrdem
@@ -115,12 +104,10 @@ public class CursoService {
                     .filter(cm -> cm.getOrdem() > ordemAtual && cm.getOrdem() <= novaOrdem)
                     .forEach(cm -> {
                         cm.setOrdem(cm.getOrdem() - 1);
-                        cursoModuloRepository.save(cm);
                     });
         }
 
         cursoModuloAlterado.setOrdem(novaOrdem);
-        cursoModuloRepository.save(cursoModuloAlterado);
     }
 
     private void ajustarOrdemModulosParaInsercao(Curso curso, int novaOrdem) {
@@ -128,7 +115,6 @@ public class CursoService {
                 .filter(cm -> cm.getOrdem() >= novaOrdem)
                 .forEach(cm -> {
                     cm.setOrdem(cm.getOrdem() + 1);
-                    cursoModuloRepository.save(cm);
                 });
     }
     @Transactional
@@ -155,9 +141,45 @@ public class CursoService {
             }
             ajustarOrdemModulosParaInsercao(curso, ordem);
             CursoModulo novo = new CursoModulo(curso, modulo, ordem);
-            cursoModuloRepository.save(novo);
+            curso.getCursoModulos().add(novo);
         }
     }
 
 
+    public Page<DetalhamentoCurso> listar(Pageable paginacao) {
+        Page<Curso> cursos = cursoRepository.findAll(paginacao);
+
+        return cursos.map(DetalhamentoCurso::by);
+    }
+
+    public DetalhamentoCurso detalhar(Long id) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+
+        return DetalhamentoCurso.by(curso);
+    }
+
+    public void remover(Long id) {
+        cursoRepository.delete(findByIdOrThrowsNotFoundException(id));
+    }
+
+    public List<ModuloByListarPorCurso> listarModulosPorCurso(Long id) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+
+        List<Modulo> modulos = moduloService.listarPorCurso(curso);
+
+        return modulos.stream()
+                .map(ModuloByListarPorCurso::by)
+                .toList();
+    }
+
+    @Transactional
+    public void removerModulo(Long idCurso, Long idModulo) {
+        Curso curso = findByIdOrThrowsNotFoundException(idCurso);
+
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
+
+        CursoModulo cursoModulo = cursoModuloService.findByCursoAndModuloOrThrowsNotFoundException(curso, modulo);
+
+        curso.getCursoModulos().remove(cursoModulo);
+    }
 }
