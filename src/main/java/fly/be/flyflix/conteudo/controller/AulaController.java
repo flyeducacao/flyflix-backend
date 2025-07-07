@@ -74,9 +74,8 @@ public class AulaController {
     }
 
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<Void> remover(@PathVariable Long id) {
-        aulaRepository.delete(aulaService.findByIdOrThrowsNotFoundException(id));
+        aulaService.remover(id);
 
         return ResponseEntity.noContent().build();
     }

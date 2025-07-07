@@ -100,4 +100,8 @@ public class AulaService {
 
         aulaRepository.save(aula);
     }
+
+    public void remover(Long id) {
+        aulaRepository.delete(findByIdOrThrowsNotFoundException(id));
+    }
 }
