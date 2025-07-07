@@ -71,7 +71,6 @@ public class CursoController {
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")
-    @Transactional
     public ResponseEntity<String> adicionarOuAlterarOrdemModuloAoCurso(
             @PathVariable Long idCurso,
             @PathVariable Long idModulo,

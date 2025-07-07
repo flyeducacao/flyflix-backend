@@ -11,7 +11,6 @@ import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
-import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,13 +21,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class CursoService {
     @Autowired
     private CursoRepository cursoRepository;
-    @Autowired
-    private CursoModuloRepository cursoModuloRepository;
     @Autowired
     private ModuloService moduloService;
     @Autowired
@@ -64,19 +62,21 @@ public class CursoService {
 
         Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
 
-        boolean jaAssociado = curso.getCursoModulos().stream()
+        Set<CursoModulo> cursoModulos = curso.getCursoModulos();
+
+        boolean jaAssociado = cursoModulos.stream()
                 .anyMatch(cm -> cm.getModulo().getId().equals(moduloId));
         if (jaAssociado) {
             throw new BadRequestException("Módulo já está associado a este curso");
         }
 
-        int novaOrdem = curso.getCursoModulos().stream()
+        int novaOrdem = cursoModulos.stream()
                 .mapToInt(CursoModulo::getOrdem)
                 .max()
                 .orElse(0) + 1;
 
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
-        cursoModuloRepository.save(cursoModulo);
+        cursoModulos.add(cursoModulo);
 
         return DetalhamentoCurso.by(curso);
     }
@@ -96,7 +96,6 @@ public class CursoService {
                     .filter(cm -> cm.getOrdem() >= novaOrdem && cm.getOrdem() < ordemAtual)
                     .forEach(cm -> {
                         cm.setOrdem(cm.getOrdem() + 1);
-                        cursoModuloRepository.save(cm);
                     });
         } else {
             // Mover módulo para posição posterior — diminuir ordem dos módulos entre ordemAtual +1 e novaOrdem
@@ -105,12 +104,10 @@ public class CursoService {
                     .filter(cm -> cm.getOrdem() > ordemAtual && cm.getOrdem() <= novaOrdem)
                     .forEach(cm -> {
                         cm.setOrdem(cm.getOrdem() - 1);
-                        cursoModuloRepository.save(cm);
                     });
         }
 
         cursoModuloAlterado.setOrdem(novaOrdem);
-        cursoModuloRepository.save(cursoModuloAlterado);
     }
 
     private void ajustarOrdemModulosParaInsercao(Curso curso, int novaOrdem) {
@@ -118,7 +115,6 @@ public class CursoService {
                 .filter(cm -> cm.getOrdem() >= novaOrdem)
                 .forEach(cm -> {
                     cm.setOrdem(cm.getOrdem() + 1);
-                    cursoModuloRepository.save(cm);
                 });
     }
     @Transactional
@@ -145,7 +141,7 @@ public class CursoService {
             }
             ajustarOrdemModulosParaInsercao(curso, ordem);
             CursoModulo novo = new CursoModulo(curso, modulo, ordem);
-            cursoModuloRepository.save(novo);
+            curso.getCursoModulos().add(novo);
         }
     }
 
