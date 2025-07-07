@@ -48,20 +48,11 @@ public class CursoService {
         return DetalhamentoCurso.by(response);
     }
 
-    @Transactional
-    public Curso atualizarCurso(Long cursoId, AtualizacaoCurso dados) {
-        Curso curso = findByIdOrThrowsNotFoundException(cursoId);
+    public void atualizarCurso(Long id, AtualizacaoCurso dados) {
+        Curso curso = findByIdOrThrowsNotFoundException(id);
+        curso.setTitulo(dados.titulo());
 
-        if (dados.titulo() != null) curso.setTitulo(dados.titulo());
-        //if (dados.descricao() != null) curso.setDescricao(dados.descricao());
-        //if (dados.imagemCapa() != null) curso.setImagemCapa(dados.imagemCapa());
-
-        if (dados.autorId() != null) {
-            Usuario novoAutor = usuarioService.findByIdOrThrowsNotFoundException(dados.autorId());
-            curso.setAutor(novoAutor);
-        }
-
-        return cursoRepository.save(curso);
+        cursoRepository.save(curso);
     }
     @Transactional
     public Curso adicionarModuloAoCurso(Long cursoId, Long moduloId) {

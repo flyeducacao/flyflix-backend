@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,14 +64,11 @@ public class CursoController {
         return ResponseEntity.ok(DetalhamentoCurso.by(curso));
     }
 
-
-
     @PutMapping("/{id}")
     public ResponseEntity<DetalhamentoCurso> atualizar(@PathVariable Long id, @RequestBody @Valid AtualizacaoCurso dados) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(id);
-        curso.setTitulo(dados.titulo());
+        cursoService.atualizarCurso(id, dados);
 
-        return ResponseEntity.ok(DetalhamentoCurso.by(curso));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
@@ -99,9 +95,6 @@ public class CursoController {
         cursoService.adicionarOuAtualizarModuloNoCurso(idCurso, idModulo, ordem);
         return ResponseEntity.ok("Módulo adicionado ou ordem atualizada com sucesso.");
     }
-
-
-
 
     @GetMapping("/{id}/modulos")
     public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
