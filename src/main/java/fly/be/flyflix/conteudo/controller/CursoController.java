@@ -52,8 +52,10 @@ public class CursoController {
     }
 
     @GetMapping
-    public Page<DetalhamentoCurso> listar(@PageableDefault(size = 10, sort = "titulo") Pageable paginacao) {
-        return cursoRepository.findAll(paginacao).map(DetalhamentoCurso::by);
+    public ResponseEntity<Page<DetalhamentoCurso>> listar(@PageableDefault(size = 10, sort = "titulo") Pageable paginacao) {
+        Page<DetalhamentoCurso> response = cursoService.listar(paginacao);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
