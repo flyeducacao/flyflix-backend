@@ -1,6 +1,8 @@
 package fly.be.flyflix.auth.service;
 
+import fly.be.flyflix.auth.controller.dto.AdicionarFotoDePerfilDto;
 import fly.be.flyflix.auth.controller.dto.AlteraFotoPerfilDto;
+import fly.be.flyflix.auth.controller.dto.GetFotoPerfilDto;
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
@@ -32,15 +34,18 @@ public class UsuarioService {
     // FOTO DE PERFIL (apenas URL)
     // ================================
 
-    public void salvarUrlFoto(Long id, String url) {
+    public void salvarUrlFoto(Long id, AdicionarFotoDePerfilDto request) {
         Usuario usuario = findByIdOrThrowsNotFoundException(id);
-        usuario.setFotoPerfilUrl(url);
+        usuario.setFotoPerfilUrl(request.url());
+
         usuarioRepository.save(usuario);
     }
 
-    public String obterUrlFoto(Long id) {
+    public GetFotoPerfilDto obterUrlFoto(Long id) {
         Usuario usuario = findByIdOrThrowsNotFoundException(id);
-        return usuario.getFotoPerfilUrl();
+
+        String response = usuario.getFotoPerfilUrl();
+        return new GetFotoPerfilDto(response);
     }
 
     public void removerFoto(Long id) {

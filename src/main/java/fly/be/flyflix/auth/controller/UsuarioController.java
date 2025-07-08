@@ -1,11 +1,8 @@
 package fly.be.flyflix.auth.controller;
 
-import fly.be.flyflix.auth.controller.dto.AlteraFotoPerfilDto;
-import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
-import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
+import fly.be.flyflix.auth.controller.dto.*;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.UsuarioService;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,17 +15,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
 
     @Autowired
     private UsuarioService usuarioService;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UsuarioByGetMe> getMe() {
@@ -56,15 +48,9 @@ public class UsuarioController {
     @PostMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> salvarFotoUrl(
             @PathVariable Long id,
-            @org.springframework.web.bind.annotation.RequestBody Map<String, String> body) {
+            @org.springframework.web.bind.annotation.RequestBody AdicionarFotoDePerfilDto request) {
 
-        String url = body.get("fotoPerfilUrl");
-
-        if (url == null || url.isBlank()) {
-            throw new BadRequestException("URL da imagem é obrigatória.");
-        }
-
-        usuarioService.salvarUrlFoto(id, url);
+        usuarioService.salvarUrlFoto(id, request);
 
         return ResponseEntity.ok(new MensagemRespostaDTO(
                 "Foto de perfil atualizada com sucesso.",
@@ -78,9 +64,10 @@ public class UsuarioController {
      * Retorna a URL da foto de perfil do usuário.
      */
     @GetMapping("/{id}/foto")
-    public ResponseEntity<String> getFotoUrl(@PathVariable Long id) {
-        String url = usuarioService.obterUrlFoto(id);
-        return ResponseEntity.ok(url);
+    public ResponseEntity<GetFotoPerfilDto> getFotoUrl(@PathVariable Long id) {
+        GetFotoPerfilDto response = usuarioService.obterUrlFoto(id);
+
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/foto")
@@ -90,9 +77,6 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Remove a foto de perfil do usuário (limpa a URL no banco).
-     */
     @DeleteMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> removerFoto(@PathVariable Long id) {
         usuarioService.removerFoto(id);
