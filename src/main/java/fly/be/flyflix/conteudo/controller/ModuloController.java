@@ -1,9 +1,11 @@
 package fly.be.flyflix.conteudo.controller;
+import fly.be.flyflix.conteudo.dto.aula.AulasByListarModulos;
 import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
+import fly.be.flyflix.conteudo.service.AulaService;
 import fly.be.flyflix.conteudo.service.ModuloService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/modulos")
 public class ModuloController {
@@ -23,6 +27,8 @@ public class ModuloController {
     private ModuloService service;
     @Autowired
     private ModuloRepository moduloRepository;
+    @Autowired
+    private AulaService aulaService;
 
     @PostMapping
     @Transactional
@@ -55,5 +61,12 @@ public class ModuloController {
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         service.remover(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/aulas")
+    public ResponseEntity<List<AulasByListarModulos>> listarAulasPorModuloId(@PathVariable Long id) {
+        List<AulasByListarModulos> response = aulaService.listarPorModuloId(id);
+
+        return ResponseEntity.ok(response);
     }
 }

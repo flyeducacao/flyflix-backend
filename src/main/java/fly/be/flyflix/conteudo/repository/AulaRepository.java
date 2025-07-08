@@ -2,6 +2,7 @@ package fly.be.flyflix.conteudo.repository;
 
 import fly.be.flyflix.conteudo.dto.aula.AulaResumoDTO;
 import fly.be.flyflix.conteudo.entity.Aula;
+import fly.be.flyflix.conteudo.entity.Modulo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +12,6 @@ import java.util.List;
 
 @Repository
 public interface AulaRepository extends JpaRepository<Aula, Long> {
-    List<Aula> findByModuloId(Long moduloId);
     @Query("""
     SELECT COUNT(a)
     FROM Aula a
@@ -33,4 +33,6 @@ public interface AulaRepository extends JpaRepository<Aula, Long> {
     SELECT COALESCE(MAX(a.ordem), 0) FROM Aula a WHERE a.modulo.id = :moduloId
     """)
     Integer findMaxOrdemByModuloId(@Param("moduloId") Long moduloId);
+
+    List<Aula> findAllByModulo(Modulo modulo);
 }
