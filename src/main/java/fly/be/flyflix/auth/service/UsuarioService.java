@@ -32,14 +32,51 @@ public class UsuarioService {
     @Autowired
     private EmailService emailService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, AlunoRepository alunoRepository, PasswordResetTokenRepository tokenRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
+    // ================================
+    // FOTO DE PERFIL (apenas URL)
+    // ================================
 
-    // ========================================
-    // SENHAS
-    // ========================================
+    public void salvarUrlFoto(Long id, String url) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        usuario.setFotoPerfilUrl(url);
+        usuarioRepository.save(usuario);
+    }
+
+    public String obterUrlFoto(Long id) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        return usuario.getFotoPerfilUrl();
+    }
+
+    public void removerFoto(Long id) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        usuario.setFotoPerfilUrl(null);
+        usuarioRepository.save(usuario);
+    }
+
+    // ================================
+    // DADOS DO USUÁRIO
+    // ================================
+
+    public UsuarioByGetMe getMe(Long usuarioId) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
+
+        // Retorna a URL real se houver, senão o campo virá como null
+        return UsuarioByGetMe.by(usuario, usuario.getFotoPerfilUrl());
+    }
+
+
+    public Usuario findByIdOrThrowsNotFoundException(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
+    }
+
+    // ================================
+    // SENHA
+    // ================================
 
     public ResponseEntity<Map<String, String>> resetarSenha(String login) {
         return usuarioRepository.findByEmail(login)
@@ -56,72 +93,10 @@ public class UsuarioService {
                 })
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
-    private static final List<String> TIPOS_PERMITIDOS = List.of(
-            "image/jpeg",
-            "image/png"
-    );
 
-
-    private static final long TAMANHO_MAXIMO = 300 * 1024; // 300KB
-
-    public void salvarFoto(Long id, MultipartFile arquivo) throws IOException {
-        if (arquivo == null) {
-            throw new IllegalArgumentException("Nenhum arquivo foi enviado.");
-        }
-
-        String tipo = arquivo.getContentType();
-        if (tipo == null || !TIPOS_PERMITIDOS.contains(tipo)) {
-            throw new IllegalArgumentException("Tipo de arquivo não permitido. Envie JPEG ou PNG.");
-        }
-
-        if (arquivo.isEmpty()) {
-            throw new IllegalArgumentException("Arquivo está vazio.");
-        }
-
-        if (arquivo.getSize() > TAMANHO_MAXIMO) {
-            throw new IllegalArgumentException("Tamanho excedido. Envie uma imagem de até 1MB.");
-        }
-
-        Usuario usuario = findByIdOrThrowsNotFoundException(id);
-
-        usuario.setFotoPerfil(arquivo.getBytes());
-        usuarioRepository.save(usuario);
-    }
-
-    public UsuarioByGetMe getMe(Long usuarioId) {
-        Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
-
-        return UsuarioByGetMe.by(usuario, "/usuarios/%s/foto".formatted(usuario.getId()));
-    }
-
-    public byte[] obterFoto(Long id) {
-        Usuario usuario = findByIdOrThrowsNotFoundException(id);
-
-        if (usuario.getFotoPerfil() != null) {
-            return usuario.getFotoPerfil();
-        }
-
-        try {
-            // Caminho do recurso dentro de src/main/resources
-            InputStream inputStream = getClass().getResourceAsStream("/static/imagens/UserPattern.png");
-            if (inputStream == null) throw new FileNotFoundException("Imagem padrão não encontrada");
-            return inputStream.readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Erro ao carregar imagem padrão");
-        }
-    }
-
-    public void removerFoto(Long id) {
-        Usuario usuario = findByIdOrThrowsNotFoundException(id);
-
-        usuario.setFotoPerfil(null);
-        usuarioRepository.save(usuario);
-    }
-
-    public Usuario findByIdOrThrowsNotFoundException(Long id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
-    }
+    // ================================
+    // VALIDAÇÕES
+    // ================================
 
     public void assertEmailIsNotRegistered(String email) {
         usuarioRepository.findByEmail(email)
@@ -144,14 +119,10 @@ public class UsuarioService {
     }
 
     private void throwsCpfJaCadastradoException(Usuario usuario) {
-        throw new BadRequestException("O cpf '%s' já está cadastrado".formatted(usuario.getCpf()));
+        throw new BadRequestException("O CPF '%s' já está cadastrado".formatted(usuario.getCpf()));
     }
 
     public void throwsEmailJaCadastradoException(Usuario usuario) {
         throw new BadRequestException("O email '%s' já está cadastrado".formatted(usuario.getEmail()));
     }
 }
-
-
-
-

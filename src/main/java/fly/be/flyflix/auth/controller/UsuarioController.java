@@ -1,88 +1,69 @@
 package fly.be.flyflix.auth.controller;
 
-import fly.be.flyflix.auth.controller.dto.FotoUploadDTO;
 import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
+
     @Autowired
     private UsuarioService usuarioService;
+
     @Autowired
     private UsuarioRepository usuarioRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UsuarioByGetMe> getMe() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         long usuarioId = Long.parseLong(authentication.getName());
-
         UsuarioByGetMe response = usuarioService.getMe(usuarioId);
-
         return ResponseEntity.ok(response);
     }
 
     @Operation(
-            summary = "Upload da foto de perfil do usuário",
+            summary = "Salva a URL da foto de perfil do usuário (upload feito pelo frontend)",
             requestBody = @RequestBody(
                     required = true,
                     content = @Content(
-                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-                            schema = @Schema(implementation = FotoUploadDTO.class)
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(example = "{ \"fotoPerfilUrl\": \"https://firebasestorage.googleapis.com/...\" }")
                     )
             ),
             responses = {
                     @ApiResponse(responseCode = "200", description = "Foto atualizada com sucesso."),
-                    @ApiResponse(responseCode = "400", description = "Arquivo inválido"),
-                    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+                    @ApiResponse(responseCode = "400", description = "URL inválida ou ausente."),
+                    @ApiResponse(responseCode = "404", description = "Usuário não encontrado.")
             }
     )
-    @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MensagemRespostaDTO> uploadFoto(
+    @PostMapping("/{id}/foto")
+    public ResponseEntity<MensagemRespostaDTO> salvarFotoUrl(
             @PathVariable Long id,
-            @Parameter(hidden = true)
-            @ModelAttribute FotoUploadDTO dto) throws IOException {
+            @RequestBody Map<String, String> body) {
 
-        MultipartFile imagem = dto.getImagem();
+        String url = body.get("fotoPerfilUrl");
 
-        var tipo = imagem.getContentType();
-        if (tipo == null || !(tipo.equals("image/jpeg") || tipo.equals("image/png"))) {
-            throw new BadRequestException("Tipo de arquivo não permitido. Envie JPEG ou PNG.");
+        if (url == null || url.isBlank()) {
+            throw new BadRequestException("URL da imagem é obrigatória.");
         }
 
-        if (imagem.isEmpty()) {
-            throw new BadRequestException("Arquivo está vazio.");
-        }
-
-        if (imagem.getSize() > 300 * 1024) {
-            throw new BadRequestException("Tamanho excedido. Envie uma imagem de até 300 KB.");
-        }
-
-        var usuario = usuarioService.findByIdOrThrowsNotFoundException(id);
-
-        usuario.setFotoPerfil(imagem.getBytes());
-        usuarioRepository.save(usuario);
+        usuarioService.salvarUrlFoto(id, url);
 
         return ResponseEntity.ok(new MensagemRespostaDTO(
                 "Foto de perfil atualizada com sucesso.",
@@ -92,24 +73,17 @@ public class UsuarioController {
         ));
     }
 
-
     /**
-     * Download da foto de perfil do usuário.
+     * Retorna a URL da foto de perfil do usuário.
      */
     @GetMapping("/{id}/foto")
-    public ResponseEntity<byte[]> downloadFoto(@PathVariable Long id) {
-        try {
-            byte[] imagem = usuarioService.obterFoto(id);
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.IMAGE_JPEG); // ajuste conforme o tipo salvo
-            return new ResponseEntity<>(imagem, headers, HttpStatus.OK);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<String> getFotoUrl(@PathVariable Long id) {
+        String url = usuarioService.obterUrlFoto(id);
+        return ResponseEntity.ok(url);
     }
 
     /**
-     * Remoção da foto de perfil do usuário.
+     * Remove a foto de perfil do usuário (limpa a URL no banco).
      */
     @DeleteMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> removerFoto(@PathVariable Long id) {
