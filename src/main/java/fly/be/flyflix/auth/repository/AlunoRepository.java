@@ -6,14 +6,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AlunoRepository extends JpaRepository<Aluno, Long> {
 
-    Page<Aluno> findAllByAtivoTrue(Pageable paginacao);
-    Optional<Aluno> findById(Long id);
-    Optional <Aluno> findByEmail(String email);
+    List<Aluno> findByDataCadastroBetweenAndAtivoIsTrue(LocalDate dataCadastroAfter, LocalDate dataCadastroBefore);
 
+    Optional<Aluno> findByIdAndAtivoIsTrue(Long id);
 
+    Page<Aluno> findAllByAtivoIsTrue(Pageable pageable);
 }

@@ -1,13 +1,22 @@
 package fly.be.flyflix.auth.service;
 
+import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
+import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,26 +27,56 @@ public class UsuarioService {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private AlunoRepository alunoRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
 
     @Autowired
     private EmailService emailService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, AlunoRepository alunoRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
-        this.alunoRepository = alunoRepository;
+    }
+
+    // ================================
+    // FOTO DE PERFIL (apenas URL)
+    // ================================
+
+    public void salvarUrlFoto(Long id, String url) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        usuario.setFotoPerfilUrl(url);
+        usuarioRepository.save(usuario);
+    }
+
+    public String obterUrlFoto(Long id) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        return usuario.getFotoPerfilUrl();
+    }
+
+    public void removerFoto(Long id) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+        usuario.setFotoPerfilUrl(null);
+        usuarioRepository.save(usuario);
+    }
+
+    // ================================
+    // DADOS DO USUÁRIO
+    // ================================
+
+    public UsuarioByGetMe getMe(Long usuarioId) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
+
+        // Retorna a URL real se houver, senão o campo virá como null
+        return UsuarioByGetMe.by(usuario, usuario.getFotoPerfilUrl());
     }
 
 
-    // ========================================
-    // SENHAS
-    // ========================================
+    public Usuario findByIdOrThrowsNotFoundException(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
+    }
+
+    // ================================
+    // SENHA
+    // ================================
 
     public ResponseEntity<Map<String, String>> resetarSenha(String login) {
         return usuarioRepository.findByEmail(login)
@@ -52,6 +91,38 @@ public class UsuarioService {
                     );
                     return ResponseEntity.ok(Map.of("message", "Nova senha enviada por email"));
                 })
-                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of("error", "Usuário não encontrado")));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+    }
+
+    // ================================
+    // VALIDAÇÕES
+    // ================================
+
+    public void assertEmailIsNotRegistered(String email) {
+        usuarioRepository.findByEmail(email)
+                .ifPresent(this::throwsEmailJaCadastradoException);
+    }
+
+    public void assertEmailIsNotRegistered(String email, Usuario usuario) {
+        usuarioRepository.findByEmailAndIdIsNot(email, usuario.getId())
+                .ifPresent(this::throwsEmailJaCadastradoException);
+    }
+
+    public void assertCpfDoesNotBelongsToAnotherUser(String cpf) {
+        usuarioRepository.findByCpf(cpf)
+                .ifPresent(this::throwsCpfJaCadastradoException);
+    }
+
+    public void assertCpfDoesNotBelongsToAnotherUser(String cpf, Usuario usuario) {
+        usuarioRepository.findByCpfAndIdIsNot(cpf, usuario.getId())
+                .ifPresent(this::throwsCpfJaCadastradoException);
+    }
+
+    private void throwsCpfJaCadastradoException(Usuario usuario) {
+        throw new BadRequestException("O CPF '%s' já está cadastrado".formatted(usuario.getCpf()));
+    }
+
+    public void throwsEmailJaCadastradoException(Usuario usuario) {
+        throw new BadRequestException("O email '%s' já está cadastrado".formatted(usuario.getEmail()));
     }
 }

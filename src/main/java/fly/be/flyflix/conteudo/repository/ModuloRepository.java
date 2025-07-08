@@ -15,8 +15,5 @@ public interface ModuloRepository extends JpaRepository<Modulo, Long> {
             "JOIN curso_modulo cm ON m.id = cm.modulo_id " +
             "WHERE cm.curso_id = :cursoId ORDER BY cm.ordem", nativeQuery = true)
     List<Modulo> findByCursoId(@Param("cursoId") Long cursoId);
-
-
-
 }
 

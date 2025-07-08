@@ -3,14 +3,17 @@ package fly.be.flyflix.conteudo.service;
 import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
+import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class ModuloService {
@@ -26,14 +29,11 @@ public class ModuloService {
         return moduloRepository.save(modulo);
     }
 
-    @Transactional
-    public Modulo atualizar(AtualizacaoModulo dados) {
-        Modulo modulo = moduloRepository.findById(dados.id())
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
-
+    public void atualizar(AtualizacaoModulo dados) {
+        Modulo modulo = findByIdOrThrowsNotFoundException(dados.id());
         modulo.setTitulo(dados.titulo());
-        // A ordem será atualizada no CursoModulo
-        return modulo;
+
+        moduloRepository.save(modulo);
     }
 
     @Transactional
@@ -47,8 +47,16 @@ public class ModuloService {
     }
 
     public DetalhamentoModulo detalhar(Long id) {
-        Modulo modulo = moduloRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = findByIdOrThrowsNotFoundException(id);
         return new DetalhamentoModulo(modulo);
+    }
+
+    public Modulo findByIdOrThrowsNotFoundException(Long id) {
+        return moduloRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Módulo com id '%s' não encontrado".formatted(id)));
+    }
+
+    public List<Modulo> listarPorCurso(Curso curso) {
+        return moduloRepository.findByCursoId(curso.getId());
     }
 }

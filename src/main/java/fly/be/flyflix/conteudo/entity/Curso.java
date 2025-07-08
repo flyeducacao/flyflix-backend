@@ -1,5 +1,7 @@
 package fly.be.flyflix.conteudo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -35,27 +37,30 @@ public class Curso {
     @Column(nullable = false)
     private String titulo;
 
-    @Column(columnDefinition = "TEXT")
+    /* @Column(columnDefinition = "TEXT")
     private String descricao;
+     */
 
     @Column(name = "data_publicacao")
     private LocalDate dataPublicacao;
 
-    private String imagemCapa;
+    // private String imagemCapa;
+
+    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private Set<CursoModulo> cursoModulos = new HashSet<>();
+
+
+    @ManyToMany(mappedBy = "cursos")
+    @Builder.Default
+    private Set<Aluno> alunos = new HashSet<>();
+
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     @Builder.Default
-    private List<CursoModulo> cursoModulos = new ArrayList<>();
+    private List<ProgressoAluno> progresso = new ArrayList<>();
 
-    // Métodos de negócio usando CursoModulo
-    public void adicionarModulo(Modulo modulo, int ordem) {
-        CursoModulo cursoModulo = new CursoModulo(this, modulo, ordem);
-        cursoModulos.add(cursoModulo);
-        modulo.getCursoModulos().add(cursoModulo);
-    }
 
-    public void removerModulo(Modulo modulo) {
-        cursoModulos.removeIf(cm -> cm.getModulo().equals(modulo));
-        modulo.getCursoModulos().removeIf(cm -> cm.getCurso().equals(this));
-    }
+
 }
