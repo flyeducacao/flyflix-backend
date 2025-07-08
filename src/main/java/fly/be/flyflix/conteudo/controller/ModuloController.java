@@ -29,15 +29,16 @@ public class ModuloController {
     private ModuloRepository moduloRepository;
     @Autowired
     private AulaService aulaService;
+    @Autowired
+    private ModuloService moduloService;
 
     @PostMapping
     @Transactional
     public ResponseEntity<DetalhamentoModulo> cadastrar(@RequestBody @Valid CadastroModulo dados) {
-        Modulo modulo = new Modulo();
-        modulo.setTitulo(dados.titulo());
-        moduloRepository.save(modulo);
+        DetalhamentoModulo response = moduloService.cadastrar(dados);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new DetalhamentoModulo(modulo.getId(), modulo.getTitulo())); // ordem será definida no curso
+                .body(response);
     }
 
     @GetMapping
