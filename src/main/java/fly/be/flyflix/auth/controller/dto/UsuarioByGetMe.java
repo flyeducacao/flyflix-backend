@@ -11,12 +11,12 @@ public record UsuarioByGetMe(
         String email,
         String fotoPerfilUrl
 ) {
-    public static UsuarioByGetMe by(Usuario usuario, String fotoPerfilUrl) {
+    public static UsuarioByGetMe by(Usuario usuario) {
         return new UsuarioByGetMe(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
-                fotoPerfilUrl
+                usuario.getFotoPerfilUrl()
         );
     }
 }

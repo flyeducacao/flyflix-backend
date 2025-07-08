@@ -13,7 +13,7 @@ public record AlunoResumoDTO(
         Boolean ativo,
         String urlFoto
 ) {
-    public AlunoResumoDTO(Aluno aluno, String urlFoto) {
+    public AlunoResumoDTO(Aluno aluno) {
         this(
                 aluno.getId(),
                 aluno.getNome(),
@@ -21,7 +21,7 @@ public record AlunoResumoDTO(
                 aluno.getEmail(),
                 aluno.getDataNascimento(),
                 aluno.getAtivo(),
-                urlFoto
+                aluno.getFotoPerfilUrl()
         );
     }
 }
