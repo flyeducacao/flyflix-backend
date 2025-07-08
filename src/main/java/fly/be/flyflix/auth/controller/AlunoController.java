@@ -1,7 +1,6 @@
 package fly.be.flyflix.auth.controller;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
-import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.service.AlunoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 @Slf4j
 @RestController
@@ -23,23 +21,31 @@ public class AlunoController {
     private AlunoService alunoService;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> cadastrar(@RequestBody CadastroAluno dados) {
-        return alunoService.cadastrarAluno(dados);
+    public ResponseEntity<Void> cadastrar(@RequestBody CadastroAluno dados) {
+        alunoService.cadastrarAluno(dados);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PutMapping
-    public ResponseEntity<Map<String, Object>> atualizar(@RequestBody AtualizarAlunoRequest dados) {
-        return alunoService.atualizarAluno(dados);
+    public ResponseEntity<Void> atualizar(@RequestBody AtualizarAlunoRequest dados) {
+        alunoService.atualizarAluno(dados);
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> remover(@PathVariable Long id) {
-        return alunoService.removerAluno(id);
+    public ResponseEntity<Void> remover(@PathVariable Long id) {
+        alunoService.removerAluno(id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> obter(@PathVariable Long id) {
-        return alunoService.obterAluno(id);
+    public ResponseEntity<ObterAluno> obter(@PathVariable Long id) {
+        ObterAluno response = alunoService.obterAluno(id);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
@@ -64,15 +70,20 @@ public class AlunoController {
     ) {
         MatricularAlunoRequest request = new MatricularAlunoRequest(id, cursoIds);
 
-        return alunoService.matricularAluno(request);
+        MatriculaResponseDTO response = alunoService.matricularAluno(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/matricula-em-lote")
-    public ResponseEntity<?> matriculaEmLote(@RequestBody MatriculaEmLoteRequest request) {
-        return alunoService.matricularAlunosEmLote(request);
+    public ResponseEntity<Void> matriculaEmLote(@RequestBody MatriculaEmLoteRequest request) {
+        alunoService.matricularAlunosEmLote(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     @GetMapping("/por-curso/{cursoId}")
     public ResponseEntity<List<AlunoResumoDTO>> listarPorCurso(@PathVariable Long cursoId) {
-        return alunoService.listarAlunosPorCurso(cursoId);
+        List<AlunoResumoDTO> response = alunoService.listarAlunosPorCurso(cursoId);
+
+        return ResponseEntity.ok(response);
     }
 }

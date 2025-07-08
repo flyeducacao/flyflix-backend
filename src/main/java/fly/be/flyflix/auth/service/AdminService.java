@@ -15,8 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,7 +28,7 @@ public class AdminService {
     @Autowired
     private UsuarioService usuarioService;
 
-    public ResponseEntity<Map<String, Object>> cadastrarAdmin(CadastroAdmin dados) {
+    public void cadastrarAdmin(CadastroAdmin dados) {
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
         CpfValidator.validarCpf(dados.cpf());
@@ -64,12 +62,9 @@ public class AdminService {
                 "Cadastro de Administrador FlyFlix",
                 corpo
         );
-
-
-        return ResponseEntity.ok(Map.of("message", "Administrador cadastrado com sucesso"));
     }
 
-    public ResponseEntity<Map<String, String>> atualizarAdmin(AtualizarAdminRequest dados) {
+    public void atualizarAdmin(AtualizarAdminRequest dados) {
         Admin admin = findByIdAndAtivoIsTrueOrThrowsNotFoundException(dados.id());
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), admin);
@@ -81,36 +76,20 @@ public class AdminService {
         //admin.setDataNascimento(dados.dataNascimento());
         admin.setCpf(dados.cpf());
         adminRepository.save(admin);
-
-        return ResponseEntity.ok(Map.of("message", "Administrador atualizado com sucesso"));
     }
 
-    public ResponseEntity<Map<String, String>> removerAdmin(Long id) {
+    public void removerAdmin(Long id) {
         Admin adminToDesative = findByIdAndAtivoIsTrueOrThrowsNotFoundException(id);
 
         adminToDesative.setAtivo(false);
         adminRepository.save(adminToDesative);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Administrador removido com sucesso");
-        return ResponseEntity.ok(response);
     }
 
 
-    public ResponseEntity<Map<String, Object>> obterAdmin(Long id) {
+    public DadosAdminResponse obterAdmin(Long id) {
         Admin admin = findByIdOrThrowsNotFoundException(id);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("admin", new DadosAdminResponse(
-            admin.getId(),
-            admin.getNome(),
-            admin.getEmail(),
-            admin.getCpf(),
-            // admin.getDataNascimento(), // Descomente se necessário
-            admin.getAtivo()
-        ));
-
-        return ResponseEntity.ok(response);
+        return DadosAdminResponse.by(admin);
     }
 
 
