@@ -25,12 +25,11 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
     private EmailService emailService;
+    private final String urlFotoDePerfilPadrao = "https://firebasestorage.googleapis.com/v0/b/flyeducation-1eea5.firebasestorage.app/o/userImg.jpg?alt=media&token=d5a70bb6-1589-4b55-bb70-9438108d7e37";
 
     public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
@@ -92,6 +91,10 @@ public class UsuarioService {
                     return ResponseEntity.ok(Map.of("message", "Nova senha enviada por email"));
                 })
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+    }
+
+    public void adicionarFotoDePerfilPadrao(Usuario usuario) {
+        usuario.setFotoPerfilUrl(urlFotoDePerfilPadrao);
     }
 
     // ================================
