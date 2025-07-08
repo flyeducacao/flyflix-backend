@@ -60,7 +60,7 @@ public class AlunoService {
         String senhaTemp = SenhaGenerator.gerarSenhaTemporaria();
         aluno.setSenha(passwordEncoder.encode(senhaTemp));
 
-
+        usuarioService.adicionarFotoDePerfilPadrao(aluno);
         alunoRepository.save(aluno);
 
         String urlLogin = "https://flyeducacao.org";

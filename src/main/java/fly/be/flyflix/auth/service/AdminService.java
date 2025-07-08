@@ -46,6 +46,7 @@ public class AdminService {
         String senhaTemp = UUID.randomUUID().toString().substring(0, 8);
         admin.setSenha(passwordEncoder.encode(senhaTemp));
 
+        usuarioService.adicionarFotoDePerfilPadrao(admin);
         adminRepository.save(admin);
 
         String corpo = String.format(
