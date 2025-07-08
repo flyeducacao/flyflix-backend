@@ -13,14 +13,13 @@ import fly.be.flyflix.auth.service.SenhaService;
 import fly.be.flyflix.auth.service.TokenService;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-import java.util.Optional;
-
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -31,21 +30,9 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final SenhaService senhaService;
 
-
-    public AuthController(TokenService tokenService,
-                          UsuarioRepository usuarioRepository,
-                          EmailService emailService,
-                          PasswordEncoder passwordEncoder, SenhaService senhaService) {
-        this.tokenService = tokenService;
-        this.usuarioRepository = usuarioRepository;
-
-        this.emailService = emailService;
-        this.passwordEncoder = passwordEncoder;
-        this.senhaService = senhaService;
-    }
 //senhas
 @PostMapping("/esqueci-senha")
-public ResponseEntity<?> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDTO dto) {
+public ResponseEntity<MensagemRespostaDTO> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDTO dto) {
     String email = dto.email();
 
     Usuario usuario = usuarioRepository.findByEmail(email)
@@ -70,7 +57,7 @@ public ResponseEntity<?> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDT
     ));
 }
     @PutMapping("/atualizar-senha")
-    public ResponseEntity<?> atualizarSenha(@RequestBody @Valid AtualizarSenhaDTO dto) {
+    public ResponseEntity<MensagemRespostaDTO> atualizarSenha(@RequestBody @Valid AtualizarSenhaDTO dto) {
         senhaService.atualizarSenha(dto);
         return ResponseEntity.ok(new MensagemRespostaDTO(
                 "Senha atualizada com sucesso.", true, HttpStatus.OK.value(), "SENHA_ATUALIZADA"
@@ -78,7 +65,7 @@ public ResponseEntity<?> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDT
     }
 
     @PostMapping("/resetar-senha")
-    public ResponseEntity<?> resetarSenha(@RequestBody @Valid RedefinicaoSenhaDTO dto) {
+    public ResponseEntity<MensagemRespostaDTO> resetarSenha(@RequestBody @Valid RedefinicaoSenhaDTO dto) {
         senhaService.redefinirSenha(dto);
         return ResponseEntity.ok(new MensagemRespostaDTO(
                 "Senha redefinida com sucesso.", true, HttpStatus.OK.value(), "SENHA_REDEFINIDA"
@@ -91,8 +78,9 @@ public ResponseEntity<?> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDT
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
         LoginResponse response = tokenService.login(loginRequest);
+
         return ResponseEntity.ok(response);
     }
 

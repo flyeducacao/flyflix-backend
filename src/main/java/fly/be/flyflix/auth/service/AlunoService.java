@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -38,9 +37,7 @@ public class AlunoService {
     @Autowired
     private UsuarioService usuarioService;
 
-    public ResponseEntity<Map<String, Object>> cadastrarAluno(CadastroAluno dados) {
-        Map<String, Object> response = new HashMap<>();
-
+    public void cadastrarAluno(CadastroAluno dados) {
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
         CpfValidator.validarCpf(dados.cpf());
@@ -78,16 +75,10 @@ public class AlunoService {
                 urlLogin
         );
 
-
-
         emailService.enviarEmail(dados.email(), assunto, corpo);
-
-
-        response.put("message", "Aluno cadastrado com sucesso. Senha enviada por email.");
-        return ResponseEntity.ok(response);
     }
 
-    public ResponseEntity<Map<String, Object>> atualizarAluno(AtualizarAlunoRequest dados) {
+    public void atualizarAluno(AtualizarAlunoRequest dados) {
         Aluno alunoToUpdate = findByIdAndAtivoIsTrueOrThrowsNotFoundException(dados.id());
 
         usuarioService.assertEmailIsNotRegistered(dados.email(), alunoToUpdate);
@@ -102,24 +93,20 @@ public class AlunoService {
         alunoToUpdate.setDataNascimento(dataNascimento);
         alunoToUpdate.setCpf(dados.cpf());
         alunoRepository.save(alunoToUpdate);
-
-        return ResponseEntity.ok(Map.of("message", "Aluno atualizado com sucesso"));
     }
 
-    public ResponseEntity<Map<String, Object>> removerAluno(long id) {
+    public void removerAluno(long id) {
         Aluno alunoToDesative = findByIdAndAtivoIsTrueOrThrowsNotFoundException(id);
 
         alunoToDesative.setAtivo(false);
 
         usuarioRepository.save(alunoToDesative);
-
-        return ResponseEntity.ok(Map.of("message", "Aluno removido com sucesso"));
     }
-    public ResponseEntity<Map<String, Object>> obterAluno(long id) {
+
+    public ObterAluno obterAluno(long id) {
         Aluno aluno = findByIdOrThrowsNotFoundException(id);
 
-        ObterAluno dto = new ObterAluno(aluno);
-        return ResponseEntity.ok(Map.of("aluno", dto));
+        return new ObterAluno(aluno);
     }
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
@@ -137,7 +124,7 @@ public class AlunoService {
                 .toList();
     }
     @Transactional
-    public ResponseEntity<MatriculaResponseDTO> matricularAluno(MatricularAlunoRequest request) {
+    public MatriculaResponseDTO matricularAluno(MatricularAlunoRequest request) {
         Aluno aluno = findByIdOrThrowsNotFoundException(request.alunoId());
 
         if (!aluno.getAtivo()) aluno.setAtivo(true);
@@ -160,10 +147,10 @@ public class AlunoService {
                 cursosResumo
         );
 
-        return ResponseEntity.ok(response);
+        return response;
     }
     @Transactional
-    public ResponseEntity<?> matricularAlunosEmLote(MatriculaEmLoteRequest request) {
+    public void matricularAlunosEmLote(MatriculaEmLoteRequest request) {
         List<Aluno> alunos = request.alunoIds().stream()
                 .map(id -> {
                     Aluno aluno = findByIdOrThrowsNotFoundException(id);
@@ -176,11 +163,10 @@ public class AlunoService {
 
         alunos.forEach(aluno -> aluno.getCursos().add(curso));
         alunoRepository.saveAll(alunos);
-
-        return ResponseEntity.ok(Map.of("message", "Alunos matriculados com sucesso"));
     }
+
     @Transactional
-    public ResponseEntity<List<AlunoResumoDTO>> listarAlunosPorCurso(Long cursoId) {
+    public List<AlunoResumoDTO> listarAlunosPorCurso(Long cursoId) {
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
         List<AlunoResumoDTO> alunos = curso.getAlunos()
@@ -189,7 +175,7 @@ public class AlunoService {
                 .map(AlunoResumoDTO::new)
                 .toList();
 
-        return ResponseEntity.ok(alunos);
+        return alunos;
     }
 
     public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {

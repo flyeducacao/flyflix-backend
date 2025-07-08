@@ -9,12 +9,8 @@ import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class UsuarioService {
@@ -69,26 +65,6 @@ public class UsuarioService {
     public Usuario findByIdOrThrowsNotFoundException(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuário com id '%s' não encontrado".formatted(id)));
-    }
-
-    // ================================
-    // SENHA
-    // ================================
-
-    public ResponseEntity<Map<String, String>> resetarSenha(String login) {
-        return usuarioRepository.findByEmail(login)
-                .map(usuario -> {
-                    String novaSenha = UUID.randomUUID().toString().substring(0, 8);
-                    usuario.setSenha(passwordEncoder.encode(novaSenha));
-                    usuarioRepository.save(usuario);
-                    emailService.enviarEmail(
-                            usuario.getEmail(),
-                            "Redefinição de senha FlyFlix",
-                            "Sua nova senha temporária é:\n\n" + novaSenha + "\n\nAltere-a após o login."
-                    );
-                    return ResponseEntity.ok(Map.of("message", "Nova senha enviada por email"));
-                })
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
 
     public void adicionarFotoDePerfilPadrao(Usuario usuario) {
