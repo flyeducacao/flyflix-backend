@@ -3,8 +3,6 @@ import fly.be.flyflix.conteudo.dto.aula.AulasByListarModulos;
 import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
-import fly.be.flyflix.conteudo.entity.Modulo;
-import fly.be.flyflix.conteudo.repository.ModuloRepository;
 import fly.be.flyflix.conteudo.service.AulaService;
 import fly.be.flyflix.conteudo.service.ModuloService;
 import jakarta.validation.Valid;
@@ -26,40 +24,43 @@ public class ModuloController {
     @Autowired
     private ModuloService service;
     @Autowired
-    private ModuloRepository moduloRepository;
-    @Autowired
     private AulaService aulaService;
+    @Autowired
+    private ModuloService moduloService;
 
     @PostMapping
-    @Transactional
     public ResponseEntity<DetalhamentoModulo> cadastrar(@RequestBody @Valid CadastroModulo dados) {
-        Modulo modulo = new Modulo();
-        modulo.setTitulo(dados.titulo());
-        moduloRepository.save(modulo);
+        DetalhamentoModulo response = moduloService.cadastrar(dados);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new DetalhamentoModulo(modulo.getId(), modulo.getTitulo())); // ordem será definida no curso
+                .body(response);
     }
 
     @GetMapping
-    public Page<DetalhamentoModulo> listar(@PageableDefault(size = 10) Pageable paginacao) {
-        return service.listar(paginacao);
+    public ResponseEntity<Page<DetalhamentoModulo>> listar(@PageableDefault(size = 10) Pageable paginacao) {
+        Page<DetalhamentoModulo> response = service.listar(paginacao);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<DetalhamentoModulo> detalhar(@PathVariable Long id) {
-        return ResponseEntity.ok(service.detalhar(id));
+        DetalhamentoModulo response = service.detalhar(id);
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping
     public ResponseEntity<Void> atualizar(@RequestBody @Valid AtualizacaoModulo dados) {
         service.atualizar(dados);
+
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         service.remover(id);
+
         return ResponseEntity.noContent().build();
     }
 

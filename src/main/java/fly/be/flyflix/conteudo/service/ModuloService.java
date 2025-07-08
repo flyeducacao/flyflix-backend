@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,12 +20,13 @@ public class ModuloService {
     @Autowired
     private ModuloRepository moduloRepository;
 
-    @Transactional
-    public Modulo cadastrar(CadastroModulo dados) {
+    public DetalhamentoModulo cadastrar(CadastroModulo dados) {
         Modulo modulo = new Modulo();
         modulo.setTitulo(dados.titulo());
-        // A ordem será definida ao associar com um curso em CursoModulo
-        return moduloRepository.save(modulo);
+
+        Modulo response = moduloRepository.save(modulo);
+
+        return new DetalhamentoModulo(response);
     }
 
     public void atualizar(AtualizacaoModulo dados) {
@@ -36,7 +36,6 @@ public class ModuloService {
         moduloRepository.save(modulo);
     }
 
-    @Transactional
     public void remover(Long id) {
         moduloRepository.deleteById(id);
     }
