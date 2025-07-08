@@ -1,5 +1,6 @@
 package fly.be.flyflix.conteudo.service;
 
+import fly.be.flyflix.conteudo.dto.aula.AulasByListarModulos;
 import fly.be.flyflix.conteudo.dto.aula.CadastroAulaSemOrdem;
 import fly.be.flyflix.conteudo.dto.aula.DadosAtualizacaoAula;
 import fly.be.flyflix.conteudo.dto.aula.DadosDetalhamentoAula;
@@ -115,5 +116,15 @@ public class AulaService {
                 aula.getModulo() != null ? aula.getModulo().getId() : null,
                 "/api/aulas/" + aula.getId() + "/capa"
         );
+    }
+
+    public List<AulasByListarModulos> listarPorModuloId(Long moduloId) {
+        Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(moduloId);
+
+        List<Aula> aulas = aulaRepository.findAllByModulo(modulo);
+
+        return aulas.stream()
+                .map(AulasByListarModulos::by)
+                .toList();
     }
 }
