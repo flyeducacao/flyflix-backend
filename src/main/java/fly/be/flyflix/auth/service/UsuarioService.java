@@ -62,7 +62,7 @@ public class UsuarioService {
         Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
 
         // Retorna a URL real se houver, senão o campo virá como null
-        return UsuarioByGetMe.by(usuario, usuario.getFotoPerfilUrl());
+        return UsuarioByGetMe.by(usuario);
     }
 
 
