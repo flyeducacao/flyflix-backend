@@ -52,7 +52,7 @@ public class UsuarioService {
 
     public void removerFoto(Long id) {
         Usuario usuario = findByIdOrThrowsNotFoundException(id);
-        usuario.setFotoPerfilUrl(null);
+        adicionarFotoDePerfilPadrao(usuario);
         usuarioRepository.save(usuario);
     }
 
