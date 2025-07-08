@@ -2,8 +2,6 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.entity.Usuario;
-import fly.be.flyflix.auth.repository.AlunoRepository;
-import fly.be.flyflix.auth.repository.PasswordResetTokenRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
@@ -11,12 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
