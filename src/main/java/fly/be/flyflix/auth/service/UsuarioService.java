@@ -1,5 +1,6 @@
 package fly.be.flyflix.auth.service;
 
+import fly.be.flyflix.auth.controller.dto.AlteraFotoPerfilDto;
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
@@ -121,5 +122,13 @@ public class UsuarioService {
 
     public void throwsEmailJaCadastradoException(Usuario usuario) {
         throw new BadRequestException("O email '%s' já está cadastrado".formatted(usuario.getEmail()));
+    }
+
+    public void atualizarFoto(Long id, AlteraFotoPerfilDto request) {
+        Usuario usuario = findByIdOrThrowsNotFoundException(id);
+
+        usuario.setFotoPerfilUrl(request.url());
+
+        usuarioRepository.save(usuario);
     }
 }

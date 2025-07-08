@@ -1,5 +1,6 @@
 package fly.be.flyflix.auth.controller;
 
+import fly.be.flyflix.auth.controller.dto.AlteraFotoPerfilDto;
 import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
@@ -55,7 +56,7 @@ public class UsuarioController {
     @PostMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> salvarFotoUrl(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> body) {
 
         String url = body.get("fotoPerfilUrl");
 
@@ -80,6 +81,13 @@ public class UsuarioController {
     public ResponseEntity<String> getFotoUrl(@PathVariable Long id) {
         String url = usuarioService.obterUrlFoto(id);
         return ResponseEntity.ok(url);
+    }
+
+    @PatchMapping("/{id}/foto")
+    public ResponseEntity<Void> atualizarFoto(@PathVariable Long id, @org.springframework.web.bind.annotation.RequestBody AlteraFotoPerfilDto request) {
+        usuarioService.atualizarFoto(id, request);
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
