@@ -68,7 +68,7 @@ public class UsuarioService {
     }
 
     public void adicionarFotoDePerfilPadrao(Usuario usuario) {
-        String urlFotoDePerfilPadrao = "https://firebasestorage.googleapis.com/v0/b/flyeducation-1eea5.firebasestorage.app/o/userImg.jpg?alt=media&token=d5a70bb6-1589-4b55-bb70-9438108d7e37";
+        String urlFotoDePerfilPadrao = "https://firebasestorage.googleapis.com/v0/b/flyeducation-1eea5.firebasestorage.app/o/fotoUsuario.jpg?alt=media&token=85ad7339-51d8-42ae-a392-b5b362cc7f15";
 
         usuario.setFotoPerfilUrl(urlFotoDePerfilPadrao);
     }
