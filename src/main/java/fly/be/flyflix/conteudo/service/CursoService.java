@@ -6,6 +6,7 @@ import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
 import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCursoComOrdem;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
 import fly.be.flyflix.conteudo.entity.Modulo;
@@ -162,13 +163,21 @@ public class CursoService {
         cursoRepository.delete(findByIdOrThrowsNotFoundException(id));
     }
 
-    public List<ModuloByListarPorCurso> listarModulosPorCurso(Long id) {
+//    public List<ModuloByListarPorCurso> listarModulosPorCurso(Long id) {
+//        Curso curso = findByIdOrThrowsNotFoundException(id);
+//
+//        List<Modulo> modulos = moduloService.listarPorCurso(curso);
+//
+//        return modulos.stream()
+//                .map(ModuloByListarPorCurso::by)
+//                .toList();
+//    }
+
+    public List<ModuloByListarPorCursoComOrdem> listarModulosPorCursoComOrdem(Long id) {
         Curso curso = findByIdOrThrowsNotFoundException(id);
-
-        List<Modulo> modulos = moduloService.listarPorCurso(curso);
-
-        return modulos.stream()
-                .map(ModuloByListarPorCurso::by)
+        return curso.getCursoModulos().stream()
+                .sorted(java.util.Comparator.comparingInt(CursoModulo::getOrdem))
+                .map(cm -> ModuloByListarPorCursoComOrdem.by(cm.getModulo(), cm.getOrdem()))
                 .toList();
     }
 
