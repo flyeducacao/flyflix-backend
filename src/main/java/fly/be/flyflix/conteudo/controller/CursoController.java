@@ -3,7 +3,7 @@ package fly.be.flyflix.conteudo.controller;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
-import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCursoComOrdem;
 import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -82,8 +82,8 @@ public class CursoController {
     }
 
     @GetMapping("/{id}/modulos")
-    public ResponseEntity<List<ModuloByListarPorCurso>> listarModulosPorCurso(@PathVariable Long id) {
-        List<ModuloByListarPorCurso> resposta = cursoService.listarModulosPorCurso(id);
+    public ResponseEntity<List<ModuloByListarPorCursoComOrdem>> listarModulosPorCurso(@PathVariable Long id) {
+        List<ModuloByListarPorCursoComOrdem> resposta = cursoService.listarModulosPorCursoComOrdem(id);
 
         return ResponseEntity.ok(resposta);
     }
