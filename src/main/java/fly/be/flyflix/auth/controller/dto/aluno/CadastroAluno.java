@@ -9,18 +9,18 @@ import org.hibernate.validator.constraints.br.CPF;
 import java.time.LocalDate;
 
 public record CadastroAluno(
-        @NotBlank(message = "Nome é obrigatório")
+        @NotBlank(message = "O campo 'nome' é obrigatório")
         String nome,
 
-        @NotBlank(message = "Email é obrigatório")
-        @Email(message = "O email deve ser válido")
+        @NotBlank(message = "O campo 'email' é obrigatório")
+        @Email(message = "Email inválido")
         String email,
 
-        @NotBlank(message = "CPF é obrigatório")
+        @NotBlank(message = "O campo 'cpf' é obrigatório")
         @CPF(message = "CPF inválido")
         String cpf,
 
-        @NotNull(message = "Data de nascimento é obrigatória")
+        @NotNull(message = "O campo 'dataNascimento' é obrigatório")
         @Past(message = "Data de nascimento inválida")
         LocalDate dataNascimento
 ) {}

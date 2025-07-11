@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +49,7 @@ public class UsuarioController {
     @PostMapping("/{id}/foto")
     public ResponseEntity<MensagemRespostaDTO> salvarFotoUrl(
             @PathVariable Long id,
-            @org.springframework.web.bind.annotation.RequestBody AdicionarFotoDePerfilDto request) {
+            @org.springframework.web.bind.annotation.RequestBody @Valid AdicionarFotoDePerfilDto request) {
 
         usuarioService.salvarUrlFoto(id, request);
 
@@ -71,7 +72,7 @@ public class UsuarioController {
     }
 
     @PatchMapping("/{id}/foto")
-    public ResponseEntity<Void> atualizarFoto(@PathVariable Long id, @org.springframework.web.bind.annotation.RequestBody AlteraFotoPerfilDto request) {
+    public ResponseEntity<Void> atualizarFoto(@PathVariable Long id, @org.springframework.web.bind.annotation.RequestBody @Valid AlteraFotoPerfilDto request) {
         usuarioService.atualizarFoto(id, request);
 
         return ResponseEntity.noContent().build();
