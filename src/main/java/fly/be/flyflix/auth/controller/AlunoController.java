@@ -2,6 +2,7 @@ package fly.be.flyflix.auth.controller;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.service.AlunoService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,7 @@ public class AlunoController {
     private AlunoService alunoService;
 
     @PostMapping
-    public ResponseEntity<Void> cadastrar(@RequestBody CadastroAluno dados) {
+    public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAluno dados) {
         alunoService.cadastrarAluno(dados);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -75,7 +76,7 @@ public class AlunoController {
     }
 
     @PostMapping("/matricula-em-lote")
-    public ResponseEntity<Void> matriculaEmLote(@RequestBody MatriculaEmLoteRequest request) {
+    public ResponseEntity<Void> matriculaEmLote(@RequestBody @Valid MatriculaEmLoteRequest request) {
         alunoService.matricularAlunosEmLote(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();

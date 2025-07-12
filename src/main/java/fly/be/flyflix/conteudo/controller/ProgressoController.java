@@ -4,6 +4,7 @@ package fly.be.flyflix.conteudo.controller;
 import fly.be.flyflix.conteudo.dto.progresso.ProgressoRequestDTO;
 import fly.be.flyflix.conteudo.dto.progresso.ProgressoResponseDTO;
 import fly.be.flyflix.conteudo.service.ProgressoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ public class ProgressoController {
     private ProgressoService progressoService;
 
     @PostMapping("/marcar-assistida")
-    public ResponseEntity<?> marcarAssistida(@RequestBody ProgressoRequestDTO dto) {
+    public ResponseEntity<?> marcarAssistida(@RequestBody @Valid ProgressoRequestDTO dto) {
         progressoService.marcarComoAssistida(dto.getAlunoId(), dto.getAulaId(), dto.getCursoId());
         return ResponseEntity.ok("Progresso registrado com sucesso.");
     }

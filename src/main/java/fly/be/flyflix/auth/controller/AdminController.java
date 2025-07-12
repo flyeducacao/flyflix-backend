@@ -6,6 +6,7 @@ import fly.be.flyflix.auth.controller.dto.admin.CadastroAdmin;
 import fly.be.flyflix.auth.controller.dto.admin.DadosAdminResponse;
 import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.service.AdminService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,14 +24,14 @@ public class AdminController {
     private AdminService adminService;
 
     @PostMapping
-    public ResponseEntity<Void> cadastrar(@RequestBody CadastroAdmin dados) {
+    public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAdmin dados) {
         adminService.cadastrarAdmin(dados);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PutMapping
-    public ResponseEntity<Void> atualizar(@RequestBody AtualizarAdminRequest dados) {
+    public ResponseEntity<Void> atualizar(@RequestBody @Valid AtualizarAdminRequest dados) {
         adminService.atualizarAdmin(dados);
 
         return ResponseEntity.noContent().build();
