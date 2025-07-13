@@ -8,6 +8,7 @@ import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -53,7 +54,7 @@ public class UsuarioService {
     // ================================
     // DADOS DO USUÁRIO
     // ================================
-
+    @Transactional
     public UsuarioByGetMe getMe(Long usuarioId) {
         Usuario usuario = findByIdOrThrowsNotFoundException(usuarioId);
 
