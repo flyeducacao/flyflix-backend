@@ -75,7 +75,7 @@ public class CursoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/{id}/alunos/import/xlsx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}/alunos/import/xlsx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> importarAlunosViaXlsx(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         alunoService.importarAlunosViaXlsx(id, file);
 
