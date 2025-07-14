@@ -27,15 +27,10 @@ public class Aluno extends Usuario {
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    @ManyToMany
+    @OneToMany(mappedBy = "aluno")
     @JsonIgnoreProperties("alunos") // evita loop de serialização
     @JsonIgnore
-    @JoinTable(
-            name = "aluno_curso",
-            joinColumns = @JoinColumn(name = "aluno_id"),
-            inverseJoinColumns = @JoinColumn(name = "curso_id")
-    )
-    private Set<Curso> cursos = new HashSet<>();
+    private Set<AlunoCurso> cursos = new HashSet<>();
 
     public boolean inativar() {
         if (Boolean.TRUE.equals(this.ativo)) {
