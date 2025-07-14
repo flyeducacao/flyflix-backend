@@ -23,7 +23,7 @@ public record UsuarioByGetMe(
 
         if (usuario instanceof Aluno aluno) {
             cursoIds = aluno.getCursos().stream()
-                    .map(Curso::getId)
+                    .map(alunoCurso -> alunoCurso.getCurso().getId())
                     .toList(); // retorna lista vazia se não tiver cursos
         }
 

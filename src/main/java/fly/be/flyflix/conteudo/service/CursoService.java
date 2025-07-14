@@ -5,7 +5,6 @@ import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
-import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCursoComOrdem;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
