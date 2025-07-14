@@ -1,5 +1,6 @@
 package fly.be.flyflix.conteudo.controller;
 
+import fly.be.flyflix.auth.service.AlunoService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
@@ -12,9 +13,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +26,8 @@ import java.util.List;
 public class CursoController {
     @Autowired
     private CursoService cursoService;
+    @Autowired
+    private AlunoService alunoService;
 
     @PostMapping
     public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados, Authentication authentication) {
@@ -68,6 +73,13 @@ public class CursoController {
         DetalhamentoCurso response = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{id}/alunos/import/xlsx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> importarAlunosViaXlsx(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        alunoService.importarAlunosViaXlsx(id, file);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")
