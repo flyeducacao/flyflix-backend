@@ -12,9 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -75,11 +73,18 @@ public class CursoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/{id}/alunos/import/xlsx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> importarAlunosViaXlsx(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        alunoService.importarAlunosViaXlsx(id, file);
+    @PostMapping(value = "/{id}/alunos/import/csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<byte[]> importarAlunosViaCsv(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        byte[] response = alunoService.importarAlunosViaCsv(id, file);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
+        httpHeaders.setContentDisposition(ContentDisposition
+                .attachment()
+                .filename("resultado-importacao-" + file.getOriginalFilename())
+                .build());
+
+        return ResponseEntity.status(HttpStatus.CREATED).headers(httpHeaders).body(response);
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")

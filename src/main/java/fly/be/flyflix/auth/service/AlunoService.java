@@ -1,5 +1,8 @@
 package fly.be.flyflix.auth.service;
 
+import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
+import com.opencsv.exceptions.CsvException;
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.AlunoCurso;
@@ -15,22 +18,22 @@ import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.service.CursoService;
 import fly.be.flyflix.auth.util.CpfValidator;
 import jakarta.transaction.Transactional;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -204,59 +207,6 @@ public class AlunoService {
                 .toList();
     }
 
-    public void importarAlunosViaXlsx(Long cursoId, MultipartFile file) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
-
-        List<Aluno> alunosParaMatricula = lerPlanilhaImportAlunos(file);
-
-        alunosParaMatricula.stream()
-                .filter(aluno -> !aluno.getAtivo())
-                .forEach(aluno -> aluno.setAtivo(true));
-
-        alunosParaMatricula.forEach(aluno -> {
-            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
-            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).curso(curso).aluno(aluno).build();
-
-            alunoCursoService.save(alunoCurso);
-        });
-    }
-
-    private List<Aluno> lerPlanilhaImportAlunos(MultipartFile file) {
-        if (file.isEmpty()) throw new BadRequestException("Arquivo não encontrado");
-
-        List<Aluno> alunosParaMatricula = new ArrayList<>();
-
-        try(
-                InputStream inputStream = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inputStream)
-        ) {
-            Sheet sheet = workbook.getSheetAt(0);
-
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
-                for (Cell cell : row) {
-                    if (cell.getColumnIndex() != 1) continue;
-
-                    String email = cell.getStringCellValue().trim();
-                    if (email.isEmpty()) continue;
-
-                    Aluno aluno = findByEmailOrThrowsNotFoundException(email);
-
-                    alunosParaMatricula.add(aluno);
-                }
-            }
-        } catch (IOException e) {
-            throw new UnprocessableEntityException("Não foi possível carregar o arquivo");
-        }
-
-        return alunosParaMatricula;
-    }
-
-    public Aluno findByEmailOrThrowsNotFoundException(String email) {
-        return alunoRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("Aluno com email '%s' não encontrado".formatted(email)));
-    }
-
     public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
         return alunoRepository.findByIdAndAtivoIsTrue(id)
                 .orElseThrow(() -> alunoIdNotFound(id));
@@ -285,5 +235,83 @@ public class AlunoService {
         LocalDate dezAnosAtras = LocalDate.now().minusYears(10);
 
         throw new BadRequestException("Data nascimento deve ser entre %s e %s".formatted(cemAnosAtras, dezAnosAtras));
+    }
+
+    @Transactional
+    public byte[] importarAlunosViaCsv(Long id, MultipartFile file) {
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(id);
+        List<String[]> linhasComFeedback = new ArrayList<>();
+
+        try(
+                InputStreamReader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+                CSVReader csvReader = new CSVReader(reader)
+        ) {
+            List<String[]> linhas = csvReader.readAll();
+
+            if (linhas.isEmpty()) {
+                throw new BadRequestException("Arquivo CSV está vazio");
+            }
+
+            String[] linhaCabecalho = Arrays.copyOf(linhas.get(0), linhas.get(0).length + 1);
+            linhaCabecalho[linhaCabecalho.length - 1] = "Feedback da importação";
+
+            linhasComFeedback.add(linhaCabecalho);
+
+            for (int i = 1; i < linhas.size(); i++) {
+                String[] linha = linhas.get(i);
+                String[] linhaComFeedback = Arrays.copyOf(linha, linha.length + 1);
+                int posicaoColunaFeedback = linhaComFeedback.length - 1;
+
+                String emailAluno = linha[1];
+
+                if (emailAluno == null || emailAluno.isBlank()) {
+                    linhaComFeedback[posicaoColunaFeedback] = "Email ausente";
+
+                    linhasComFeedback.add(linhaComFeedback);
+                    continue;
+                }
+
+                Optional<Aluno> optionalAluno = alunoRepository.findByEmail(emailAluno);
+
+                if (optionalAluno.isEmpty()) {
+                    linhaComFeedback[posicaoColunaFeedback] = "Aluno com email '%s' não cadastrado".formatted(emailAluno);
+
+                    linhasComFeedback.add(linhaComFeedback);
+                    continue;
+                }
+
+                Aluno alunoEncontrado = optionalAluno.get();
+
+                boolean alunoJaMatriculado = alunoEncontrado.getCursos().stream().anyMatch(alunoCurso -> alunoCurso.getCurso().equals(curso));
+                if (alunoJaMatriculado) {
+                    linhaComFeedback[posicaoColunaFeedback] = "Aluno já está matriculado no curso";
+
+                    linhasComFeedback.add(linhaComFeedback);
+                    continue;
+                }
+
+                AlunoCurso alunoCurso = new AlunoCurso(AlunoCursoKey.by(alunoEncontrado, curso), alunoEncontrado, curso);
+
+                alunoCursoService.save(alunoCurso);
+                linhaComFeedback[posicaoColunaFeedback] = "Aluno cadastrado com sucesso";
+
+                linhasComFeedback.add(linhaComFeedback);
+            }
+        } catch (CsvException | IOException e) {
+            throw new UnprocessableEntityException("Não foi possível ler o arquivo");
+        }
+
+        try (ByteArrayOutputStream resposta = new ByteArrayOutputStream();
+             OutputStreamWriter writer = new OutputStreamWriter(resposta, StandardCharsets.UTF_8);
+             CSVWriter csvWriter = new CSVWriter(writer)) {
+
+            csvWriter.writeAll(linhasComFeedback);
+            csvWriter.flush();
+
+            return resposta.toByteArray();
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
