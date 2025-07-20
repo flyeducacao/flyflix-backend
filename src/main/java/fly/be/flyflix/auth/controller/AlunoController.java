@@ -3,13 +3,17 @@ package fly.be.flyflix.auth.controller;
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.service.AlunoService;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,13 +24,30 @@ import java.util.Set;
 public class AlunoController {
     @Autowired
     private AlunoService alunoService;
+    @Autowired
+    private Validator validator;
+
 
     @PostMapping
     public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAluno dados) {
         alunoService.cadastrarAluno(dados);
-
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+    @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResultadoImportacaoAlunosDTO> importarAlunos(@RequestPart("file") MultipartFile file) {
+        ResultadoImportacaoAlunosDTO resultado = alunoService.importarAlunosViaPlanilha(file);
+        return ResponseEntity.ok(resultado);
+    }
+    @GetMapping("/importar/relatorio-erros")
+    public ResponseEntity<byte[]> baixarErrosImportacao() {
+        byte[] arquivo = alunoService.gerarRelatorioErros();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=erros-importacao.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(arquivo);
+    }
+
 
     @PutMapping
     public ResponseEntity<Void> atualizar(@RequestBody AtualizarAlunoRequest dados) {
@@ -87,4 +108,6 @@ public class AlunoController {
 
         return ResponseEntity.ok(response);
     }
+
+
 }
