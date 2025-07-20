@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,11 +29,14 @@ public class AlunoController {
     private Validator validator;
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Void> cadastrar(@RequestBody @Valid CadastroAluno dados) {
         alunoService.cadastrarAluno(dados);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResultadoImportacaoAlunosDTO> importarAlunos(@RequestPart("file") MultipartFile file) {
         ResultadoImportacaoAlunosDTO resultado = alunoService.importarAlunosViaPlanilha(file);
@@ -85,6 +89,8 @@ public class AlunoController {
 
         return ResponseEntity.ok(alunos);
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/matricular")
     public ResponseEntity<MatriculaResponseDTO> matricular(
             @PathVariable Long id,
@@ -96,6 +102,7 @@ public class AlunoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/matricula-em-lote")
     public ResponseEntity<Void> matriculaEmLote(@RequestBody @Valid MatriculaEmLoteRequest request) {
         alunoService.matricularAlunosEmLote(request);
