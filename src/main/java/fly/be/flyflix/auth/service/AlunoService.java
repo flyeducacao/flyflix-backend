@@ -12,6 +12,9 @@ import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.service.CursoService;
 import fly.be.flyflix.auth.util.CpfValidator;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ConstraintViolation;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +22,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+
+import jakarta.validation.Validator;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AlunoService {
@@ -36,6 +47,9 @@ public class AlunoService {
     private CursoService cursoService;
     @Autowired
     private UsuarioService usuarioService;
+    @Autowired
+    private Validator validator;
+
 
     public void cadastrarAluno(CadastroAluno dados) {
         usuarioService.assertEmailIsNotRegistered(dados.email());
@@ -207,4 +221,145 @@ public class AlunoService {
 
         throw new BadRequestException("Data nascimento deve ser entre %s e %s".formatted(cemAnosAtras, dezAnosAtras));
     }
+    public ResultadoImportacaoAlunosDTO importarAlunosViaPlanilha(MultipartFile file) {
+        List<ErroImportacaoAlunoDTO> erros = new ArrayList<>();
+        List<CadastroAluno> alunos = lerAlunosExcel(file, erros);
+
+        int totalImportadosComSucesso = 0;
+        int linha = 2;
+
+        for (CadastroAluno dto : alunos) {
+            Set<ConstraintViolation<CadastroAluno>> violacoes = validator.validate(dto);
+            if (!violacoes.isEmpty()) {
+                erros.add(new ErroImportacaoAlunoDTO(dto, linha, formatarErrosDeValidacao(violacoes)));
+            } else {
+                try {
+                    cadastrarAluno(dto);
+                    totalImportadosComSucesso++;
+                } catch (Exception e) {
+                    erros.add(new ErroImportacaoAlunoDTO(dto, linha, e.getMessage()));
+                }
+            }
+            linha++;
+        }
+        this.ultimosErros = erros;
+
+        return new ResultadoImportacaoAlunosDTO(totalImportadosComSucesso, erros);
+    }
+
+
+    private List<CadastroAluno> lerAlunosExcel(MultipartFile file, List<ErroImportacaoAlunoDTO> erros) {
+        List<CadastroAluno> alunos = new ArrayList<>();
+
+        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                int linha = i + 1; // Excel é 1-based
+
+                try {
+                    String nome = getValorString(row, 0);
+                    String email = getValorString(row, 1);
+                    String cpf = getValorString(row, 2);
+                    LocalDate dataNascimento = getValorData(row, 3);
+
+                    alunos.add(new CadastroAluno(nome, email, cpf, dataNascimento));
+                } catch (Exception e) {
+                    erros.add(new ErroImportacaoAlunoDTO(
+                            linha,
+                            getValorSeguro(row, 0),
+                            getValorSeguro(row, 1),
+                            getValorSeguro(row, 2),
+                            null,
+                            "Erro ao ler dados: " + e.getMessage()
+                    ));
+                }
+            }
+
+        } catch (Exception e) {
+            erros.add(new ErroImportacaoAlunoDTO(0, "", "", "", null, "Erro ao abrir a planilha: " + e.getMessage()));
+        }
+
+        return alunos;
+    }
+    private String getValorString(Row row, int index) {
+        Cell cell = row.getCell(index);
+        if (cell == null) throw new IllegalArgumentException("Campo vazio na coluna " + (index + 1));
+        return cell.getStringCellValue().trim();
+    }
+
+    private String getValorSeguro(Row row, int index) {
+        try {
+            Cell cell = row.getCell(index);
+            return (cell != null) ? cell.toString().trim() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private LocalDate getValorData(Row row, int index) {
+        Cell cell = row.getCell(index);
+        if (!DateUtil.isCellDateFormatted(cell)) {
+            throw new IllegalArgumentException("Data inválida na coluna " + (index + 1));
+        }
+        return cell.getLocalDateTimeCellValue().toLocalDate();
+    }
+
+
+    private String formatarErrosDeValidacao(Set<ConstraintViolation<CadastroAluno>> violacoes) {
+        return violacoes.stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .collect(Collectors.joining("; "));
+    }
+    public byte[] gerarRelatorioErros() {
+
+        List<ErroImportacaoAlunoDTO> erros = this.ultimosErros;
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Erros de Importação");
+
+            // Cabeçalho
+            Row header = sheet.createRow(0);
+            String[] colunas = {"Linha", "Nome", "Email", "CPF", "Data de Nascimento", "Erro"};
+            for (int i = 0; i < colunas.length; i++) {
+                Cell cell = header.createCell(i);
+                cell.setCellValue(colunas[i]);
+            }
+
+            // Linhas de erro
+            for (int i = 0; i < erros.size(); i++) {
+                ErroImportacaoAlunoDTO erro = erros.get(i);
+                Row row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(erro.linha());
+                row.createCell(1).setCellValue(erro.nome());
+                row.createCell(2).setCellValue(erro.email());
+                row.createCell(3).setCellValue(erro.cpf());
+                row.createCell(4).setCellValue(erro.dataNascimento() != null ? erro.dataNascimento().toString() : "");
+                row.createCell(5).setCellValue(erro.motivoErro());
+            }
+
+            // Ajustar largura automática das colunas
+            for (int i = 0; i < colunas.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar planilha de erros", e);
+        }
+    }
+    private List<ErroImportacaoAlunoDTO> ultimosErros = new ArrayList<>();
+
+    public List<ErroImportacaoAlunoDTO> getUltimosErrosImportacao() {
+        return ultimosErros;
+    }
+
+
+
 }
+
