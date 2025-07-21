@@ -142,7 +142,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of("https://flyflix.onrender.com", "http://localhost:3000", "http://127.0.0.1:5173"));
+                    config.setAllowedOrigins(List.of(
+                            "https://flyflix.onrender.com",
+                            "http://localhost:3000",
+                            "http://127.0.0.1:5173",
+                            "https://flyrecursos.vercel.app"));
                     config.setAllowedMethods(List.of("*"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
