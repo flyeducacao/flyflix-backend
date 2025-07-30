@@ -6,14 +6,16 @@ public record AulasByListarModulos(
         Long id,
         String titulo,
         String tipo,
-        Integer ordem
+        Integer ordem,
+        String linkConteudo
 ) {
     public static AulasByListarModulos by(Aula aula) {
         return new AulasByListarModulos(
                 aula.getId(),
                 aula.getTitulo(),
                 aula.getTipo(),
-                aula.getOrdem()
+                aula.getOrdem(),
+                aula.getLinkConteudo()
         );
     }
 }
