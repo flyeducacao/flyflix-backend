@@ -37,8 +37,8 @@ public class ModuloController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<DetalhamentoModulo>> listar(@PageableDefault(size = 10) Pageable paginacao) {
-        Page<DetalhamentoModulo> response = service.listar(paginacao);
+    public ResponseEntity<List<DetalhamentoModulo>> listar() {
+        List<DetalhamentoModulo> response = service.listar();
 
         return ResponseEntity.ok(response);
     }

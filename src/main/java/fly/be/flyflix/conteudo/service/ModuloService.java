@@ -40,9 +40,11 @@ public class ModuloService {
         moduloRepository.deleteById(id);
     }
 
-    public Page<DetalhamentoModulo> listar(Pageable paginacao) {
-        return moduloRepository.findAll(paginacao)
-                .map(DetalhamentoModulo::new);
+    public List<DetalhamentoModulo> listar() {
+        return moduloRepository.findAll()
+                .stream()
+                .map(DetalhamentoModulo::new)
+                .toList();
     }
 
     public DetalhamentoModulo detalhar(Long id) {
