@@ -1,6 +1,5 @@
 package fly.be.flyflix.conteudo.dto.curso;
 
-import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.conteudo.dto.modulo.ModuloResumoNoCursoDTO;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
@@ -9,23 +8,16 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 
-record UsuarioByDetalhamentoCurso(Long id, String nome, String email) {
-    public UsuarioByDetalhamentoCurso(Usuario usuario) {
-        this(
-                usuario.getId(),
-                usuario.getNome(),
-                usuario.getEmail()
-        );
-    }
-}
-
 
 public record DetalhamentoCurso(
         Long id,
         String titulo,
-        //String descricao,
-        //String imagemCapa,
         LocalDate dataPublicacao,
+        LocalDate dataInicio,
+        LocalDate dataConclusao,
+        String duracaoFormatada,
+        int totalAulas,
+        double totalHoras,
         UsuarioByDetalhamentoCurso autor,
         List<ModuloResumoNoCursoDTO> modulos
 ) {
@@ -40,15 +32,21 @@ public record DetalhamentoCurso(
         return new DetalhamentoCurso(
                 curso.getId(),
                 curso.getTitulo(),
-                //curso.getDescricao(),
-                //curso.getImagemCapa(),
                 curso.getDataPublicacao(),
+                curso.getDataInicio(),
+                curso.getDataConclusao(),
+                formatarDuracao(curso.getTotalHoras()),
+                curso.getTotalAulas(),
+                curso.getTotalHoras(),
                 autor,
                 modulos
         );
     }
+
+    private static String formatarDuracao(double totalHoras) {
+        int totalMinutos = (int) (totalHoras * 60);
+        int horas = totalMinutos / 60;
+        int minutos = totalMinutos % 60;
+        return "%d horas e %d minutos".formatted(horas, minutos);
+    }
 }
-
-
-
-

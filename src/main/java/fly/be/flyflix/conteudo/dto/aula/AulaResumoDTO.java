@@ -13,11 +13,14 @@ public class AulaResumoDTO {
     private String titulo;
     private String tipo;
     private Integer ordem;
+    private Integer duracaoEmMinutos;
 
     public AulaResumoDTO(Aula aula) {
         this.id = aula.getId();
         this.titulo = aula.getTitulo();
         this.tipo = aula.getTipo();
         this.ordem = aula.getOrdem();
+        this.duracaoEmMinutos = aula.getDuracaoEstimada();
     }
 }
+

@@ -5,7 +5,6 @@ import fly.be.flyflix.auth.service.UsuarioService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
-import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCurso;
 import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCursoComOrdem;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.CursoModulo;
@@ -13,13 +12,12 @@ import fly.be.flyflix.conteudo.entity.Modulo;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.CursoRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -37,22 +35,17 @@ public class CursoService {
 
     public DetalhamentoCurso cadastrarCurso(CadastroCurso dados, Long userId) {
         Usuario autor = usuarioService.findByIdOrThrowsNotFoundException(userId);
-
-        Curso curso = Curso.builder()
-                .titulo(dados.titulo())
-                .dataPublicacao(LocalDate.now())
-                .autor(autor)
-                .build();
-
+        Curso curso = dados.toEntity(autor);
         Curso response = cursoRepository.save(curso);
-
         return DetalhamentoCurso.by(response);
     }
 
+    @Transactional
     public void atualizarCurso(Long id, AtualizacaoCurso dados) {
         Curso curso = findByIdOrThrowsNotFoundException(id);
         curso.setTitulo(dados.titulo());
-
+        // Se desejar atualizar outras propriedades, faça aqui
+        // Curso está em estado gerenciado, então o save() pode ser dispensado, mas chamar não faz mal:
         cursoRepository.save(curso);
     }
 
@@ -79,8 +72,15 @@ public class CursoService {
         CursoModulo cursoModulo = new CursoModulo(curso, modulo, novaOrdem);
         cursoModulos.add(cursoModulo);
 
+        // Atualize os totais do curso, se tiver esse método
+        curso.atualizarTotais();
+
+        // Salva o curso (e pelo cascade, salva o CursoModulo)
+        cursoRepository.save(curso);
+
         return DetalhamentoCurso.by(curso);
     }
+
 
 
     public Curso findByIdOrThrowsNotFoundException(Long id) {
@@ -147,15 +147,15 @@ public class CursoService {
     }
 
 
+    @Transactional(readOnly = true)
     public Page<DetalhamentoCurso> listar(Pageable paginacao) {
         Page<Curso> cursos = cursoRepository.findAll(paginacao);
-
         return cursos.map(DetalhamentoCurso::by);
     }
 
+    @Transactional(readOnly = true)
     public DetalhamentoCurso detalhar(Long id) {
         Curso curso = findByIdOrThrowsNotFoundException(id);
-
         return DetalhamentoCurso.by(curso);
     }
 
@@ -184,11 +184,15 @@ public class CursoService {
     @Transactional
     public void removerModulo(Long idCurso, Long idModulo) {
         Curso curso = findByIdOrThrowsNotFoundException(idCurso);
-
         Modulo modulo = moduloService.findByIdOrThrowsNotFoundException(idModulo);
 
         CursoModulo cursoModulo = cursoModuloService.findByCursoAndModuloOrThrowsNotFoundException(curso, modulo);
 
-        curso.getCursoModulos().remove(cursoModulo);
+        curso.getCursoModulos().remove(cursoModulo); // Remove da coleção
+        cursoModuloService.remover(cursoModulo);     // Remove da base
+
+        curso.atualizarTotais();                     // Recalcula as horas
+        cursoRepository.save(curso);                 // Persiste atualização
     }
+
 }

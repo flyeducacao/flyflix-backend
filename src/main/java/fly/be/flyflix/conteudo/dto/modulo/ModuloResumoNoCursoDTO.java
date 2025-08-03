@@ -9,6 +9,10 @@ public record ModuloResumoNoCursoDTO(
         Integer ordem
 ) {
     public static ModuloResumoNoCursoDTO from(CursoModulo cursoModulo) {
+        if (cursoModulo == null || cursoModulo.getModulo() == null) {
+            throw new IllegalArgumentException("CursoModulo ou Modulo está nulo");
+        }
+
         return new ModuloResumoNoCursoDTO(
                 cursoModulo.getModulo().getId(),
                 cursoModulo.getModulo().getTitulo(),
@@ -16,3 +20,4 @@ public record ModuloResumoNoCursoDTO(
         );
     }
 }
+

@@ -42,7 +42,6 @@ public class Modulo {
     @OneToMany(mappedBy = "modulo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("ordem ASC")
     @Builder.Default
-
     private Set<Aula> aulas = new HashSet<>();
 
 

@@ -5,9 +5,12 @@ import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,13 +24,25 @@ public class ModuloService {
     private ModuloRepository moduloRepository;
 
     public DetalhamentoModulo cadastrar(CadastroModulo dados) {
+        String tituloNormalizado = dados.titulo().trim();
+
+        boolean existe = moduloRepository.existsByTituloIgnoreCase(tituloNormalizado);
+        if (existe) {
+            throw new BadRequestException("Já existe um módulo com o título '" + tituloNormalizado + "'");
+        }
+
         Modulo modulo = new Modulo();
-        modulo.setTitulo(dados.titulo());
+        modulo.setTitulo(tituloNormalizado);
 
-        Modulo response = moduloRepository.save(modulo);
-
-        return new DetalhamentoModulo(response);
+        try {
+            Modulo response = moduloRepository.save(modulo);
+            return new DetalhamentoModulo(response);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException("Já existe um módulo com o título '" + tituloNormalizado + "'");
+        }
     }
+
+
 
     public void atualizar(AtualizacaoModulo dados) {
         Modulo modulo = findByIdOrThrowsNotFoundException(dados.id());
@@ -47,6 +62,7 @@ public class ModuloService {
                 .toList();
     }
 
+    @Transactional
     public DetalhamentoModulo detalhar(Long id) {
         Modulo modulo = findByIdOrThrowsNotFoundException(id);
         return new DetalhamentoModulo(modulo);
