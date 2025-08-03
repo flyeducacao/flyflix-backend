@@ -34,6 +34,7 @@ public class DefaultAdminUserConfig implements CommandLineRunner {
                     admin.setEmail(adminEmail);
 
                     admin.setCpf(adminCpf);
+
                     admin.setSenha(passwordEncoder.encode("FlyAdmin*8")); // senha padrão
                     admin.setAtivo(true);
                     admin.setRole(Role.ADMIN);

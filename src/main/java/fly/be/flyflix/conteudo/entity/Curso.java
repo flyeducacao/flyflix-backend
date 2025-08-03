@@ -37,14 +37,18 @@ public class Curso {
     @Column(nullable = false)
     private String titulo;
 
-    /* @Column(columnDefinition = "TEXT")
-    private String descricao;
-     */
 
     @Column(name = "data_publicacao")
     private LocalDate dataPublicacao;
 
-    // private String imagemCapa;
+    @Column(name = "data_inicio")
+    private LocalDate dataInicio;
+
+    @Column(name = "total_aulas")
+    private int totalAulas;
+
+    @Column(name = "total_horas")
+    private int totalHoras;
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
@@ -60,6 +64,8 @@ public class Curso {
     @JsonIgnore
     @Builder.Default
     private List<ProgressoAluno> progresso = new ArrayList<>();
+
+
 
 
 
