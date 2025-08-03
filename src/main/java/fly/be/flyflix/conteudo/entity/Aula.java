@@ -34,6 +34,7 @@ public class Aula {
 
     private Integer ordem;
 
+    @Getter
     private Integer duracaoEstimada; // em minutos
 
     private String linkConteudo; // URL, pode ser link para vídeo ou outro tipo de conteúdo
@@ -51,6 +52,5 @@ public class Aula {
     @JsonIgnore
     @Builder.Default
     private List<ProgressoAluno> progresso = new ArrayList<>();
-
 
 }
