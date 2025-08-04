@@ -137,6 +137,7 @@ public class AlunoService {
                 .map(AlunoResumoDTO::new)
                 .toList();
     }
+
     @Transactional
     public MatriculaResponseDTO matricularAluno(MatricularAlunoRequest request) {
         Aluno aluno = findByIdOrThrowsNotFoundException(request.alunoId());
@@ -149,10 +150,15 @@ public class AlunoService {
 
         aluno.getCursos().addAll(cursos);
         alunoRepository.save(aluno);
+        Set<AlunoCurso> newAlunoCursos = cursos.stream().map(curso -> {
+            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).aluno(aluno).curso(curso).build();
 
-        List<CursoResumoDTO> cursosResumo = aluno.getCursos()
+            return alunoCursoRepository.save(alunoCurso);
+        }).collect(Collectors.toSet());
+
+        List<CursoResumoDTO> cursosResumo = newAlunoCursos
                 .stream()
-                .map(curso -> new CursoResumoDTO(curso.getId(), curso.getTitulo()))
+                .map(alunoCurso -> new CursoResumoDTO(alunoCurso.getCurso().getId(), alunoCurso.getCurso().getTitulo()))
                 .toList();
 
         MatriculaResponseDTO response = new MatriculaResponseDTO(
@@ -163,6 +169,7 @@ public class AlunoService {
 
         return response;
     }
+
     @Transactional
     public void matricularAlunosEmLote(MatriculaEmLoteRequest request) {
         List<Aluno> alunos = request.alunoIds().stream()
@@ -175,21 +182,26 @@ public class AlunoService {
 
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(request.cursoId());
 
-        alunos.forEach(aluno -> aluno.getCursos().add(curso));
-        alunoRepository.saveAll(alunos);
+        alunos.forEach(aluno -> {
+            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
+            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).curso(curso).aluno(aluno).build();
+
+            AlunoCurso savedAlunoCurso = alunoCursoRepository.save(alunoCurso);
+
+            aluno.getCursos().add(savedAlunoCurso);
+        });
     }
 
     @Transactional
     public List<AlunoResumoDTO> listarAlunosPorCurso(Long cursoId) {
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
-        List<AlunoResumoDTO> alunos = curso.getAlunos()
+        return curso.getAlunos()
                 .stream()
+                .map(AlunoCurso::getAluno)
                 .filter(Aluno::getAtivo)
                 .map(AlunoResumoDTO::new)
                 .toList();
-
-        return alunos;
     }
 
     public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
