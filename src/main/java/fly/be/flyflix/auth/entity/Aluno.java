@@ -26,7 +26,7 @@ public class Aluno extends Usuario {
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    @OneToMany(mappedBy = "aluno")
+    @OneToMany(mappedBy = "aluno", fetch = FetchType.EAGER)
     @JsonIgnoreProperties("alunos") // evita loop de serialização
     @JsonIgnore
     private Set<AlunoCurso> cursos = new HashSet<>();
