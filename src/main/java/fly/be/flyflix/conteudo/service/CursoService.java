@@ -44,7 +44,9 @@ public class CursoService {
     public void atualizarCurso(Long id, AtualizacaoCurso dados) {
         Curso curso = findByIdOrThrowsNotFoundException(id);
         curso.setTitulo(dados.titulo());
-        // Se desejar atualizar outras propriedades, faça aqui
+        curso.setDataPublicacao(dados.dataPublicacao());
+        curso.setDataInicio(dados.dataInicio());
+        curso.setDataConclusao(dados.dataConclusao());
         // Curso está em estado gerenciado, então o save() pode ser dispensado, mas chamar não faz mal:
         cursoRepository.save(curso);
     }
