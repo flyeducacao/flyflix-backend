@@ -2,6 +2,7 @@ package fly.be.flyflix.conteudo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.auth.entity.AlunoCurso;
 import fly.be.flyflix.auth.entity.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -59,9 +60,8 @@ public class Curso {
     @Builder.Default
     private Set<CursoModulo> cursoModulos = new HashSet<>();
 
-    @ManyToMany(mappedBy = "cursos")
-    @Builder.Default
-    private Set<Aluno> alunos = new HashSet<>();
+    @OneToMany(mappedBy = "curso")
+    private Set<AlunoCurso> alunos = new HashSet<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

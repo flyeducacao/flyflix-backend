@@ -18,4 +18,6 @@ public interface AlunoRepository extends JpaRepository<Aluno, Long> {
     Optional<Aluno> findByIdAndAtivoIsTrue(Long id);
 
     Page<Aluno> findAllByAtivoIsTrue(Pageable pageable);
+
+    Optional<Aluno> findByEmail(String email);
 }

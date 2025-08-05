@@ -1,5 +1,6 @@
 package fly.be.flyflix.conteudo.controller;
 
+import fly.be.flyflix.auth.service.AlunoService;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
@@ -11,11 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @RestController
@@ -23,6 +26,8 @@ import java.util.List;
 public class CursoController {
     @Autowired
     private CursoService cursoService;
+    @Autowired
+    private AlunoService alunoService;
 
     @PostMapping
     public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados, Authentication authentication) {
@@ -93,5 +98,28 @@ public class CursoController {
         cursoService.removerModulo(idCurso, idModulo);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(
+            value = "/{id}/alunos/importar/xlsx",
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<byte[]> matricularAlunosViaXlsx(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        byte[] response = alunoService.matricularAlunosViaXlsx(id, file);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDisposition(
+                ContentDisposition
+                        .attachment()
+                        .filename("resultado-importação-matricula-%s.xlsx".formatted(LocalDateTime.now()))
+                        .build()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(response);
     }
 }

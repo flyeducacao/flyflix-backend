@@ -2,19 +2,31 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.auth.entity.AlunoCurso;
 import fly.be.flyflix.auth.enums.Role;
+import fly.be.flyflix.auth.exception.UnprocessableEntityException;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
+import fly.be.flyflix.conteudo.entity.AlunoCursoKey;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.exceptions.NotFoundException;
+import fly.be.flyflix.conteudo.repository.AlunoCursoRepository;
 import fly.be.flyflix.conteudo.service.CursoService;
 import fly.be.flyflix.auth.util.CpfValidator;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.AreaReference;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFTable;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTable;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableColumn;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableColumns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +40,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Validator;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.*;
@@ -49,6 +62,8 @@ public class AlunoService {
     private UsuarioService usuarioService;
     @Autowired
     private Validator validator;
+    @Autowired
+    private AlunoCursoRepository alunoCursoRepository;
 
 
     public void cadastrarAluno(CadastroAluno dados) {
@@ -137,6 +152,7 @@ public class AlunoService {
                 .map(AlunoResumoDTO::new)
                 .toList();
     }
+
     @Transactional
     public MatriculaResponseDTO matricularAluno(MatricularAlunoRequest request) {
         Aluno aluno = findByIdOrThrowsNotFoundException(request.alunoId());
@@ -147,12 +163,16 @@ public class AlunoService {
                 .map(cursoService::findByIdOrThrowsNotFoundException)
                 .toList();
 
-        aluno.getCursos().addAll(cursos);
-        alunoRepository.save(aluno);
+        Set<AlunoCurso> newAlunoCursos = cursos.stream().map(curso -> {
+            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
+            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).aluno(aluno).curso(curso).build();
 
-        List<CursoResumoDTO> cursosResumo = aluno.getCursos()
+            return alunoCursoRepository.save(alunoCurso);
+        }).collect(Collectors.toSet());
+
+        List<CursoResumoDTO> cursosResumo = newAlunoCursos
                 .stream()
-                .map(curso -> new CursoResumoDTO(curso.getId(), curso.getTitulo()))
+                .map(alunoCurso -> new CursoResumoDTO(alunoCurso.getCurso().getId(), alunoCurso.getCurso().getTitulo()))
                 .toList();
 
         MatriculaResponseDTO response = new MatriculaResponseDTO(
@@ -163,6 +183,7 @@ public class AlunoService {
 
         return response;
     }
+
     @Transactional
     public void matricularAlunosEmLote(MatriculaEmLoteRequest request) {
         List<Aluno> alunos = request.alunoIds().stream()
@@ -175,21 +196,26 @@ public class AlunoService {
 
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(request.cursoId());
 
-        alunos.forEach(aluno -> aluno.getCursos().add(curso));
-        alunoRepository.saveAll(alunos);
+        alunos.forEach(aluno -> {
+            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
+            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).curso(curso).aluno(aluno).build();
+
+            AlunoCurso savedAlunoCurso = alunoCursoRepository.save(alunoCurso);
+
+            aluno.getCursos().add(savedAlunoCurso);
+        });
     }
 
     @Transactional
     public List<AlunoResumoDTO> listarAlunosPorCurso(Long cursoId) {
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
-        List<AlunoResumoDTO> alunos = curso.getAlunos()
+        return curso.getAlunos()
                 .stream()
+                .map(AlunoCurso::getAluno)
                 .filter(Aluno::getAtivo)
                 .map(AlunoResumoDTO::new)
                 .toList();
-
-        return alunos;
     }
 
     public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
@@ -285,6 +311,121 @@ public class AlunoService {
 
         return alunos;
     }
+
+    public byte[] matricularAlunosViaXlsx(Long cursoId, MultipartFile file) {
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
+
+        if (file.isEmpty()) throw new BadRequestException("Arquivo não encontrado");
+
+        try(
+                InputStream inputStream = file.getInputStream();
+                Workbook workbook = new XSSFWorkbook(inputStream);
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        ) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            XSSFSheet xssfSheet = (XSSFSheet) workbook.getSheetAt(0);
+            XSSFTable table = xssfSheet.getTables().get(0);
+            Cell feedbackHeaderCell = createFeedbackColumn(workbook, xssfSheet, table);
+
+            createColunaVazia(sheet);
+
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue;
+
+                Cell feedbackCell = createFeedbackCell(feedbackHeaderCell.getColumnIndex(), row);
+
+                Cell emailCell = row.getCell(1);
+
+                if (emailCell == null) continue;
+
+                String email = emailCell.getStringCellValue().trim();
+                if (email.isEmpty()) {
+                    feedbackCell.setCellValue("Email ausente");
+
+                    continue;
+                };
+
+                Optional<Aluno> optionalAluno = alunoRepository.findByEmail(email);
+                if(optionalAluno.isEmpty()) {
+                    feedbackCell.setCellValue("Email '%s' não encontrado".formatted(email));
+
+                    continue;
+                }
+
+                Aluno aluno = optionalAluno.get();
+
+                if (!aluno.getAtivo()) {
+                    aluno.setAtivo(true);
+
+                    alunoRepository.save(aluno);
+                }
+
+                boolean alunoJaEstaMatriculadoNoCurso = aluno.getCursos().stream().anyMatch(ac -> ac.getCurso().equals(curso));
+
+                if (alunoJaEstaMatriculadoNoCurso) {
+                    feedbackCell.setCellValue("Aluno já matriculado no curso");
+
+                    continue;
+                }
+
+                alunoCursoRepository.save(new AlunoCurso(AlunoCursoKey.by(aluno, curso), aluno, curso));
+
+                feedbackCell.setCellValue("Aluno matriculado com sucesso");
+            }
+
+            workbook.write(outputStream);
+
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            throw new UnprocessableEntityException("Não foi possível carregar o arquivo");
+        }
+    }
+
+    private void createColunaVazia(Sheet sheet) {
+        Row headerRow = sheet.getRow(0);
+
+        headerRow.createCell(headerRow.getLastCellNum());
+    }
+
+    private Cell createFeedbackCell(int columnIndex, Row row) {
+        return row.createCell(columnIndex);
+    }
+
+    private Cell createFeedbackColumn(Workbook workbook, XSSFSheet sheet, XSSFTable table) {
+        Row headerRow = sheet.getRow(0);
+        int newColIndex = headerRow.getLastCellNum();
+
+        CellStyle headerCellStyle = headerRow.getCell(0).getCellStyle();
+        Cell feedbackHeaderCell = headerRow.createCell(newColIndex);
+        feedbackHeaderCell.setCellStyle(headerCellStyle);
+        feedbackHeaderCell.setCellValue("FeedBack da importação");
+
+        int firstRow = table.getStartCellReference().getRow();
+        int lastRow = sheet.getLastRowNum();
+
+        int firstCol = table.getStartCellReference().getCol();
+        int lastCol = sheet.getRow(0).getLastCellNum() - 1;
+
+        CellReference startRef = new CellReference(firstRow, firstCol);
+        CellReference endRef = new CellReference(lastRow, lastCol);
+
+        AreaReference newAreaRef = new AreaReference(startRef, endRef, workbook.getSpreadsheetVersion());
+        table.setArea(newAreaRef);
+
+        CTTable ctTable = table.getCTTable();
+        CTTableColumns columns = ctTable.getTableColumns();
+        long newId = columns.sizeOfTableColumnArray() + 1;
+
+        CTTableColumn newColumn = columns.addNewTableColumn();
+        newColumn.setId(newId);
+        newColumn.setName("FeedBack da importação");
+
+        columns.setCount(newId);
+
+        return feedbackHeaderCell;
+    }
+
     private String getValorString(Row row, int index) {
         Cell cell = row.getCell(index);
         if (cell == null) throw new IllegalArgumentException("Campo vazio na coluna " + (index + 1));
@@ -353,6 +494,7 @@ public class AlunoService {
             throw new RuntimeException("Erro ao gerar planilha de erros", e);
         }
     }
+
     private List<ErroImportacaoAlunoDTO> ultimosErros = new ArrayList<>();
 
     public List<ErroImportacaoAlunoDTO> getUltimosErrosImportacao() {
