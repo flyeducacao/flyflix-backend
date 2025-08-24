@@ -52,7 +52,9 @@ public class ModuloService {
     }
 
     public void remover(Long id) {
-        moduloRepository.deleteById(id);
+        Modulo modulo = findByIdOrThrowsNotFoundException(id);
+
+        moduloRepository.delete(modulo);
     }
 
     public List<DetalhamentoModulo> listar() {

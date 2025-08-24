@@ -3,6 +3,7 @@ package fly.be.flyflix.config;
 import fly.be.flyflix.auth.entity.Admin;
 import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.repository.AdminRepository;
+import fly.be.flyflix.auth.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,8 @@ public class DefaultAdminUserConfig implements CommandLineRunner {
     private AdminRepository adminRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    private UsuarioService usuarioService;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -39,6 +42,7 @@ public class DefaultAdminUserConfig implements CommandLineRunner {
                     admin.setAtivo(true);
                     admin.setRole(Role.ADMIN);
                     //admin.setDataNascimento(LocalDate.of(2022, 1, 17));
+                    usuarioService.adicionarFotoDePerfilPadrao(admin);
                     adminRepository.save(admin);
                     System.out.println("Admin padrão criado com sucesso");
                 }
