@@ -18,6 +18,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,6 +50,10 @@ public class AlunoService {
     private UsuarioService usuarioService;
     @Autowired
     private Validator validator;
+    @Value("${frontend.url}")
+    private String frontendUrl;
+    @Value("${frontend.login-path:/login}")
+    private String loginPath;
 
 
     public void cadastrarAluno(CadastroAluno dados) {
@@ -73,7 +78,8 @@ public class AlunoService {
         usuarioService.adicionarFotoDePerfilPadrao(aluno);
         alunoRepository.save(aluno);
 
-        String urlLogin = "https://flyeducacao.org";
+        String urlLogin = frontendUrl + loginPath;
+
         String assunto = "Sua conta FlyFlix está pronta!";
         String corpo = String.format(
                 "<p>Oi, %s!</p>" +

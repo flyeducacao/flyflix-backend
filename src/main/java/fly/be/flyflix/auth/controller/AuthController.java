@@ -14,6 +14,7 @@ import fly.be.flyflix.auth.service.TokenService;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,31 +32,39 @@ public class AuthController {
     private final SenhaService senhaService;
 
 //senhas
-@PostMapping("/esqueci-senha")
-public ResponseEntity<MensagemRespostaDTO> esqueciSenha(@RequestBody @Valid RequisicaoResetSenhaDTO dto) {
-    String email = dto.email();
+@Value("${frontend.url}")
+private String frontendUrl;
 
-    Usuario usuario = usuarioRepository.findByEmail(email)
-            .orElseThrow(() -> new BadRequestException("Email não cadastrado."));
+    @PostMapping("/esqueci-senha")
+    public ResponseEntity<MensagemRespostaDTO> esqueciSenha(
+            @RequestBody @Valid RequisicaoResetSenhaDTO dto) {
 
-    String token = tokenService.gerarTokenRedefinicaoSenha(usuario);
+        String email = dto.email();
 
-    String link = "http://localhost:3000/resetar-senha?token=" + token;
-    String conteudoHtml = """
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("Email não cadastrado."));
+
+        String token = tokenService.gerarTokenRedefinicaoSenha(usuario);
+
+        // Usa o domínio do frontend definido no application.properties
+        String link = frontendUrl + "/resetar-senha?token=" + token;
+
+        String conteudoHtml = """
         <p>Olá,</p>
         <p>Para redefinir sua senha, <a href="%s">clique aqui</a>.</p>
         <p>Se você não solicitou essa alteração, ignore este e-mail.</p>
     """.formatted(link);
 
-    emailService.enviarEmail(email, "Redefinição de senha Flyflix", conteudoHtml);
+        emailService.enviarEmail(email, "Redefinição de senha Flyflix", conteudoHtml);
 
-    return ResponseEntity.ok(new MensagemRespostaDTO(
-            "Email enviado com instruções para redefinir a senha.",
-            true,
-            HttpStatus.OK.value(),
-            "EMAIL_RESET_SENHA_ENVIADO"
-    ));
-}
+        return ResponseEntity.ok(new MensagemRespostaDTO(
+                "Email enviado com instruções para redefinir a senha.",
+                true,
+                HttpStatus.OK.value(),
+                "EMAIL_RESET_SENHA_ENVIADO"
+        ));
+    }
+
     @PutMapping("/atualizar-senha")
     public ResponseEntity<MensagemRespostaDTO> atualizarSenha(@RequestBody @Valid AtualizarSenhaDTO dto) {
         senhaService.atualizarSenha(dto);
