@@ -1,6 +1,7 @@
 package fly.be.flyflix.auth.repository;
 
 import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.conteudo.entity.Curso;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,11 @@ public interface AlunoRepository extends JpaRepository<Aluno, Long> {
 
     List<Aluno> findByDataCadastroBetweenAndAtivoIsTrue(LocalDate dataCadastroAfter, LocalDate dataCadastroBefore);
 
-    Optional<Aluno> findByIdAndAtivoIsTrue(Long id);
+    Optional<Aluno> findByEmail(String email);
 
     Page<Aluno> findAllByAtivoIsTrue(Pageable pageable);
+   Optional<Aluno> findByIdAndAtivoTrue(Long id);
+
+
+    List<Aluno> findByCursosContaining(Curso curso);
 }

@@ -25,5 +25,3 @@ public record AlunoResumoDTO(
         );
     }
 }
-
-

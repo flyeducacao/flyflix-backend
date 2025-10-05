@@ -36,13 +36,8 @@ public class AlunoController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResultadoImportacaoAlunosDTO> importarAlunos(@RequestPart("file") MultipartFile file) {
-        ResultadoImportacaoAlunosDTO resultado = alunoService.importarAlunosViaPlanilha(file);
-        return ResponseEntity.ok(resultado);
-    }
-    @GetMapping("/importar/relatorio-erros")
+
+    @GetMapping("/exportar-relatorio-erros")
     public ResponseEntity<byte[]> baixarErrosImportacao() {
         byte[] arquivo = alunoService.gerarRelatorioErros();
 
@@ -102,13 +97,20 @@ public class AlunoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/matricula-em-lote")
-    public ResponseEntity<Void> matriculaEmLote(@RequestBody @Valid MatriculaEmLoteRequest request) {
-        alunoService.matricularAlunosEmLote(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/importar-e-matricular", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<MatriculaEmLoteResponse>> importarEMatricularAlunos(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam Long cursoId) {
+
+        List<MatriculaEmLoteResponse> resultado =
+                alunoService.importarEMatricularAlunos(file, cursoId);
+
+        return ResponseEntity.ok(resultado);
     }
+
+
     @GetMapping("/por-curso/{cursoId}")
     public ResponseEntity<List<AlunoResumoDTO>> listarPorCurso(@PathVariable Long cursoId) {
         List<AlunoResumoDTO> response = alunoService.listarAlunosPorCurso(cursoId);
