@@ -7,16 +7,12 @@ import fly.be.flyflix.auth.enums.Role;
 import fly.be.flyflix.auth.exception.UnprocessableEntityException;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import fly.be.flyflix.auth.util.CpfValidator;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
 import fly.be.flyflix.conteudo.entity.AlunoCursoKey;
 import fly.be.flyflix.conteudo.entity.Curso;
-import fly.be.flyflix.conteudo.exceptions.BadRequestException;
-import fly.be.flyflix.conteudo.exceptions.NotFoundException;
-import fly.be.flyflix.conteudo.repository.AlunoCursoRepository;
 import fly.be.flyflix.conteudo.service.CursoService;
-import fly.be.flyflix.auth.util.CpfValidator;
 import jakarta.transaction.Transactional;
-import jakarta.validation.ConstraintViolation;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.AreaReference;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -37,14 +33,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-
-import jakarta.validation.Validator;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,16 +56,6 @@ public class AlunoService {
     private CursoService cursoService;
     @Autowired
     private UsuarioService usuarioService;
-    @Autowired
-    private Validator validator;
-    @Autowired
-    private AlunoCursoRepository alunoCursoRepository;
-  
-    @Value("${frontend.url}")
-    private String frontendUrl;
-    @Value("${frontend.login-path:/login}")
-    private String loginPath;   
-
 
 
     public void cadastrarAluno(CadastroAluno dados) {
@@ -115,6 +100,19 @@ public class AlunoService {
         emailService.enviarEmail(dados.email(), assunto, corpo);
     }
 
+    public void assertDataNascimentoValida(LocalDate dataNascimento) {
+        if (dataNascimento == null) {
+            throw new IllegalArgumentException("Data de nascimento não pode ser nula");
+        }
+        if (dataNascimento.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Data de nascimento não pode ser no futuro");
+        }
+        if (dataNascimento.isBefore(LocalDate.of(1925, 1, 1))) {
+            throw new IllegalArgumentException("Data de nascimento inválida");
+        }
+    }
+
+
     public void atualizarAluno(AtualizarAlunoRequest dados) {
         Aluno alunoToUpdate = findByIdAndAtivoIsTrueOrThrowsNotFoundException(dados.id());
 
@@ -132,6 +130,8 @@ public class AlunoService {
         alunoRepository.save(alunoToUpdate);
     }
 
+    
+
     public void removerAluno(long id) {
         Aluno alunoToDesative = findByIdAndAtivoIsTrueOrThrowsNotFoundException(id);
 
@@ -140,11 +140,22 @@ public class AlunoService {
         usuarioRepository.save(alunoToDesative);
     }
 
+    public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(long id) {
+        return alunoRepository.findByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new NoSuchElementException("Aluno ativo não encontrado com ID: " + id));
+    }
+
     public ObterAluno obterAluno(long id) {
         Aluno aluno = findByIdOrThrowsNotFoundException(id);
 
         return new ObterAluno(aluno);
     }
+    public Aluno findByIdOrThrowsNotFoundException(Long id) {
+        return alunoRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Aluno não encontrado com ID: " + id));
+    }
+
+    
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
     public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
@@ -183,289 +194,98 @@ public class AlunoService {
                 .map(alunoCurso -> new CursoResumoDTO(alunoCurso.getCurso().getId(), alunoCurso.getCurso().getTitulo()))
                 .toList();
 
-        MatriculaResponseDTO response = new MatriculaResponseDTO(
+        return new MatriculaResponseDTO(
                 aluno.getId(),
                 aluno.getNome(),
                 cursosResumo
         );
-
-        return response;
     }
 
     @Transactional
-    public void matricularAlunosEmLote(MatriculaEmLoteRequest request) {
-        List<Aluno> alunos = request.alunoIds().stream()
-                .map(id -> {
-                    Aluno aluno = findByIdOrThrowsNotFoundException(id);
-                    if (!aluno.getAtivo()) aluno.setAtivo(true);
-
-                    return aluno;
-                }).toList();
-
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(request.cursoId());
-
-        alunos.forEach(aluno -> {
-            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
-            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).curso(curso).aluno(aluno).build();
-
-            AlunoCurso savedAlunoCurso = alunoCursoRepository.save(alunoCurso);
-
-            aluno.getCursos().add(savedAlunoCurso);
-        });
-    }
-
-    @Transactional
-    public List<AlunoResumoDTO> listarAlunosPorCurso(Long cursoId) {
+    public List<MatriculaEmLoteResponse> importarEMatricularAlunos(MultipartFile file, Long cursoId) {
+        ultimosErros.clear(); // Limpa erros anteriores
+        List<MatriculaEmLoteResponse> respostas = new ArrayList<>();
         Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
 
-        return curso.getAlunos()
-                .stream()
-                .map(AlunoCurso::getAluno)
-                .filter(Aluno::getAtivo)
-                .map(AlunoResumoDTO::new)
-                .toList();
-    }
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(is)) {
 
-    public Aluno findByIdAndAtivoIsTrueOrThrowsNotFoundException(Long id) {
-        return alunoRepository.findByIdAndAtivoIsTrue(id)
-                .orElseThrow(() -> alunoIdNotFound(id));
-    }
-
-    public Aluno findByIdOrThrowsNotFoundException(Long id) {
-        return alunoRepository.findById(id)
-                .orElseThrow(() -> alunoIdNotFound(id));
-    }
-
-    public NotFoundException alunoIdNotFound(Long id) {
-        return new NotFoundException("Aluno com id '%s' não encontrado".formatted(id));
-    }
-
-    public void assertDataNascimentoValida(LocalDate dataNascimento) {
-        boolean isLessThan100YearsOld = dataNascimento.isAfter(LocalDate.now().minusYears(100));
-        boolean isAtLeast10YearsOld = dataNascimento.isBefore(LocalDate.now().minusYears(10));
-
-        boolean isDataValida = isAtLeast10YearsOld && isLessThan100YearsOld;
-
-        if(!isDataValida) throwsDataNascimentoInvalida();
-    }
-
-    private void throwsDataNascimentoInvalida() {
-        LocalDate cemAnosAtras = LocalDate.now().minusYears(100);
-        LocalDate dezAnosAtras = LocalDate.now().minusYears(10);
-
-        throw new BadRequestException("Data nascimento deve ser entre %s e %s".formatted(cemAnosAtras, dezAnosAtras));
-    }
-    public ResultadoImportacaoAlunosDTO importarAlunosViaPlanilha(MultipartFile file) {
-        List<ErroImportacaoAlunoDTO> erros = new ArrayList<>();
-        List<CadastroAluno> alunos = lerAlunosExcel(file, erros);
-
-        int totalImportadosComSucesso = 0;
-        int linha = 2;
-
-        for (CadastroAluno dto : alunos) {
-            Set<ConstraintViolation<CadastroAluno>> violacoes = validator.validate(dto);
-            if (!violacoes.isEmpty()) {
-                erros.add(new ErroImportacaoAlunoDTO(dto, linha, formatarErrosDeValidacao(violacoes)));
-            } else {
-                try {
-                    cadastrarAluno(dto);
-                    totalImportadosComSucesso++;
-                } catch (Exception e) {
-                    erros.add(new ErroImportacaoAlunoDTO(dto, linha, e.getMessage()));
-                }
-            }
-            linha++;
-        }
-        this.ultimosErros = erros;
-
-        return new ResultadoImportacaoAlunosDTO(totalImportadosComSucesso, erros);
-    }
-
-
-    private List<CadastroAluno> lerAlunosExcel(MultipartFile file, List<ErroImportacaoAlunoDTO> erros) {
-        List<CadastroAluno> alunos = new ArrayList<>();
-
-        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
 
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) { // pula cabeçalho
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                int linha = i + 1; // Excel é 1-based
+                String nome = getStringCellValue(row.getCell(0));
+                String email = getStringCellValue(row.getCell(1));
+                String cpf = getStringCellValue(row.getCell(2));
+                LocalDate dataNascimento = getLocalDateCellValue(row.getCell(3));
+
+                if (email == null || email.isBlank()) {
+                    String motivo = "Email vazio";
+                    respostas.add(new MatriculaEmLoteResponse(nome, email, "ERRO", motivo));
+                    ultimosErros.add(new ErroImportacaoAlunoDTO(i + 1, nome, email, cpf, dataNascimento, motivo));
+                    continue;
+                }
 
                 try {
-                    String nome = getValorString(row, 0);
-                    String email = getValorString(row, 1);
-                    String cpf = getValorString(row, 2);
-                    LocalDate dataNascimento = getValorData(row, 3);
+                    Aluno aluno = alunoRepository.findByEmail(email).orElse(null);
 
-                    alunos.add(new CadastroAluno(nome, email, cpf, dataNascimento));
-                } catch (Exception e) {
-                    erros.add(new ErroImportacaoAlunoDTO(
-                            linha,
-                            getValorSeguro(row, 0),
-                            getValorSeguro(row, 1),
-                            getValorSeguro(row, 2),
-                            null,
-                            "Erro ao ler dados: " + e.getMessage()
-                    ));
-                }
-            }
+                    if (aluno == null) {
+                        // Validações e cadastro
+                        usuarioService.assertEmailIsNotRegistered(email);
+                        usuarioService.assertCpfDoesNotBelongsToAnotherUser(cpf);
+                        CpfValidator.validarCpf(cpf);
+                        assertDataNascimentoValida(dataNascimento);
 
-        } catch (Exception e) {
-            erros.add(new ErroImportacaoAlunoDTO(0, "", "", "", null, "Erro ao abrir a planilha: " + e.getMessage()));
-        }
+                        aluno = new Aluno();
+                        aluno.setNome(nome);
+                        aluno.setEmail(email);
+                        aluno.setCpf(cpf);
+                        aluno.setDataNascimento(dataNascimento);
+                        aluno.setAtivo(true);
+                        aluno.setRole(Role.ALUNO);
 
-        return alunos;
-    }
+                        String senhaTemp = SenhaGenerator.gerarSenhaTemporaria();
+                        aluno.setSenha(passwordEncoder.encode(senhaTemp));
+                        usuarioService.adicionarFotoDePerfilPadrao(aluno);
 
-    public byte[] matricularAlunosViaXlsx(Long cursoId, MultipartFile file) {
-        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
+                        // Envia e-mail de boas-vindas
+                        String urlLogin = "https://flyeducacao.org";
+                        String assunto = "Sua conta FlyFlix está pronta!";
+                        String corpo = String.format(
+                                "<p>Oi, %s!</p>" +
+                                        "<p>Sua conta FlyFlix já está no sistema! 💻<br>" +
+                                        "Senha temporária: <strong>%s</strong></p>" +
+                                        "<p>Clique <a href=\"%s\">aqui</a> para acessar!</p>" +
+                                        "<p>Abraço digital,<br>Equipe Fly 🤖</p>",
+                                nome, senhaTemp, urlLogin
+                        );
+                        emailService.enviarEmail(email, assunto, corpo);
+                    }
 
-        if (file.isEmpty()) throw new BadRequestException("Arquivo não encontrado");
-
-        try(
-                InputStream inputStream = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inputStream);
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        ) {
-            Sheet sheet = workbook.getSheetAt(0);
-
-            XSSFSheet xssfSheet = (XSSFSheet) workbook.getSheetAt(0);
-            XSSFTable table = xssfSheet.getTables().get(0);
-            Cell feedbackHeaderCell = createFeedbackColumn(workbook, xssfSheet, table);
-
-            createColunaVazia(sheet);
-
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
-
-                Cell feedbackCell = createFeedbackCell(feedbackHeaderCell.getColumnIndex(), row);
-
-                Cell emailCell = row.getCell(1);
-
-                if (emailCell == null) continue;
-
-                String email = emailCell.getStringCellValue().trim();
-                if (email.isEmpty()) {
-                    feedbackCell.setCellValue("Email ausente");
-
-                    continue;
-                };
-
-                Optional<Aluno> optionalAluno = alunoRepository.findByEmail(email);
-                if(optionalAluno.isEmpty()) {
-                    feedbackCell.setCellValue("Email '%s' não encontrado".formatted(email));
-
-                    continue;
-                }
-
-                Aluno aluno = optionalAluno.get();
-
-                if (!aluno.getAtivo()) {
-                    aluno.setAtivo(true);
-
+                    // Matricula no curso
+                    aluno.getCursos().add(curso); // Set garante unicidade
                     alunoRepository.save(aluno);
+
+                    respostas.add(new MatriculaEmLoteResponse(aluno.getNome(), aluno.getEmail(), "SUCESSO"));
+
+                } catch (Exception e) {
+                    String motivo = e.getMessage();
+                    respostas.add(new MatriculaEmLoteResponse(nome, email, "ERRO", motivo));
+                    ultimosErros.add(new ErroImportacaoAlunoDTO(i + 1, nome, email, cpf, dataNascimento, motivo));
                 }
-
-                boolean alunoJaEstaMatriculadoNoCurso = aluno.getCursos().stream().anyMatch(ac -> ac.getCurso().equals(curso));
-
-                if (alunoJaEstaMatriculadoNoCurso) {
-                    feedbackCell.setCellValue("Aluno já matriculado no curso");
-
-                    continue;
-                }
-
-                alunoCursoRepository.save(new AlunoCurso(AlunoCursoKey.by(aluno, curso), aluno, curso));
-
-                feedbackCell.setCellValue("Aluno matriculado com sucesso");
             }
 
-            workbook.write(outputStream);
-
-            return outputStream.toByteArray();
         } catch (IOException e) {
-            throw new UnprocessableEntityException("Não foi possível carregar o arquivo");
+            throw new RuntimeException("Erro ao processar planilha: " + e.getMessage(), e);
         }
+
+        return respostas;
     }
 
-    private void createColunaVazia(Sheet sheet) {
-        Row headerRow = sheet.getRow(0);
-
-        headerRow.createCell(headerRow.getLastCellNum());
-    }
-
-    private Cell createFeedbackCell(int columnIndex, Row row) {
-        return row.createCell(columnIndex);
-    }
-
-    private Cell createFeedbackColumn(Workbook workbook, XSSFSheet sheet, XSSFTable table) {
-        Row headerRow = sheet.getRow(0);
-        int newColIndex = headerRow.getLastCellNum();
-
-        CellStyle headerCellStyle = headerRow.getCell(0).getCellStyle();
-        Cell feedbackHeaderCell = headerRow.createCell(newColIndex);
-        feedbackHeaderCell.setCellStyle(headerCellStyle);
-        feedbackHeaderCell.setCellValue("FeedBack da importação");
-
-        int firstRow = table.getStartCellReference().getRow();
-        int lastRow = sheet.getLastRowNum();
-
-        int firstCol = table.getStartCellReference().getCol();
-        int lastCol = sheet.getRow(0).getLastCellNum() - 1;
-
-        CellReference startRef = new CellReference(firstRow, firstCol);
-        CellReference endRef = new CellReference(lastRow, lastCol);
-
-        AreaReference newAreaRef = new AreaReference(startRef, endRef, workbook.getSpreadsheetVersion());
-        table.setArea(newAreaRef);
-
-        CTTable ctTable = table.getCTTable();
-        CTTableColumns columns = ctTable.getTableColumns();
-        long newId = columns.sizeOfTableColumnArray() + 1;
-
-        CTTableColumn newColumn = columns.addNewTableColumn();
-        newColumn.setId(newId);
-        newColumn.setName("FeedBack da importação");
-
-        columns.setCount(newId);
-
-        return feedbackHeaderCell;
-    }
-
-    private String getValorString(Row row, int index) {
-        Cell cell = row.getCell(index);
-        if (cell == null) throw new IllegalArgumentException("Campo vazio na coluna " + (index + 1));
-        return cell.getStringCellValue().trim();
-    }
-
-    private String getValorSeguro(Row row, int index) {
-        try {
-            Cell cell = row.getCell(index);
-            return (cell != null) ? cell.toString().trim() : "";
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private LocalDate getValorData(Row row, int index) {
-        Cell cell = row.getCell(index);
-        if (!DateUtil.isCellDateFormatted(cell)) {
-            throw new IllegalArgumentException("Data inválida na coluna " + (index + 1));
-        }
-        return cell.getLocalDateTimeCellValue().toLocalDate();
-    }
-
-
-    private String formatarErrosDeValidacao(Set<ConstraintViolation<CadastroAluno>> violacoes) {
-        return violacoes.stream()
-                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                .collect(Collectors.joining("; "));
-    }
+    // Método para gerar relatório de erros
     public byte[] gerarRelatorioErros() {
-
-        List<ErroImportacaoAlunoDTO> erros = this.ultimosErros;
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Erros de Importação");
 
@@ -478,8 +298,8 @@ public class AlunoService {
             }
 
             // Linhas de erro
-            for (int i = 0; i < erros.size(); i++) {
-                ErroImportacaoAlunoDTO erro = erros.get(i);
+            for (int i = 0; i < ultimosErros.size(); i++) {
+                ErroImportacaoAlunoDTO erro = ultimosErros.get(i);
                 Row row = sheet.createRow(i + 1);
                 row.createCell(0).setCellValue(erro.linha());
                 row.createCell(1).setCellValue(erro.nome());
@@ -503,11 +323,56 @@ public class AlunoService {
         }
     }
 
-    private List<ErroImportacaoAlunoDTO> ultimosErros = new ArrayList<>();
-
-    public List<ErroImportacaoAlunoDTO> getUltimosErrosImportacao() {
-        return ultimosErros;
+    // Auxiliares para leitura do Excel
+    private String getStringCellValue(Cell cell) {
+        if (cell == null) return null;
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue().trim();
+            case NUMERIC -> {
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
+                } else {
+                    yield String.valueOf((long) cell.getNumericCellValue());
+                }
+            }
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> cell.getCellFormula();
+            case BLANK, _NONE, ERROR -> null;
+        };
     }
+
+    private LocalDate getLocalDateCellValue(Cell cell) {
+        if (cell == null) return null;
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            return cell.getLocalDateTimeCellValue().toLocalDate();
+        }
+        return null;
+    }
+
+
+
+  private final List<ErroImportacaoAlunoDTO> ultimosErros = new ArrayList<>();
+
+
+    public List<AlunoResumoDTO> listarAlunosPorCurso(Long cursoId) {
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
+
+        List<Aluno> alunos = alunoRepository.findByCursosContaining(curso);
+
+        return alunos.stream()
+                .map(AlunoResumoDTO::new)
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
+
+
+
+
+
 
 
 
