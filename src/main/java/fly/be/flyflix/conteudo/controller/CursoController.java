@@ -100,26 +100,5 @@ public class CursoController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(
-            value = "/{id}/alunos/importar/xlsx",
-            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE,
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<byte[]> matricularAlunosViaXlsx(
-            @PathVariable Long id,
-            @RequestParam("file") MultipartFile file
-    ) {
-        byte[] response = alunoService.matricularAlunosViaXlsx(id, file);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDisposition(
-                ContentDisposition
-                        .attachment()
-                        .filename("resultado-importação-matricula-%s.xlsx".formatted(LocalDateTime.now()))
-                        .build()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(response);
-    }
 }

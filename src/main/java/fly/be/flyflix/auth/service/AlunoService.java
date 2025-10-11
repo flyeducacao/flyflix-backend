@@ -2,31 +2,19 @@ package fly.be.flyflix.auth.service;
 
 import fly.be.flyflix.auth.controller.dto.aluno.*;
 import fly.be.flyflix.auth.entity.Aluno;
-import fly.be.flyflix.auth.entity.AlunoCurso;
 import fly.be.flyflix.auth.enums.Role;
-import fly.be.flyflix.auth.exception.UnprocessableEntityException;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.util.CpfValidator;
 import fly.be.flyflix.conteudo.dto.curso.CursoResumoDTO;
-import fly.be.flyflix.conteudo.entity.AlunoCursoKey;
 import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.service.CursoService;
 import jakarta.transaction.Transactional;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.AreaReference;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFTable;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTable;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableColumn;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableColumns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,7 +45,7 @@ public class AlunoService {
     @Autowired
     private UsuarioService usuarioService;
 
-
+    String urlLogin = "https://flyeducacao.org";
     public void cadastrarAluno(CadastroAluno dados) {
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
@@ -80,7 +68,8 @@ public class AlunoService {
         usuarioService.adicionarFotoDePerfilPadrao(aluno);
         alunoRepository.save(aluno);
 
-        String urlLogin = frontendUrl + loginPath;
+
+        //String urlLogin = frontendUrl + loginPath;
 
         String assunto = "Sua conta FlyFlix está pronta!";
         String corpo = String.format(
@@ -155,7 +144,6 @@ public class AlunoService {
                 .orElseThrow(() -> new NoSuchElementException("Aluno não encontrado com ID: " + id));
     }
 
-    
 
     private static final Logger logger = LoggerFactory.getLogger(AlunoService.class);
     public Page<AlunoResumoDTO> listarAlunosResumo(Pageable paginacao) {
@@ -182,16 +170,12 @@ public class AlunoService {
                 .map(cursoService::findByIdOrThrowsNotFoundException)
                 .toList();
 
-        Set<AlunoCurso> newAlunoCursos = cursos.stream().map(curso -> {
-            AlunoCursoKey alunoCursoId = AlunoCursoKey.by(aluno, curso);
-            AlunoCurso alunoCurso = AlunoCurso.builder().id(alunoCursoId).aluno(aluno).curso(curso).build();
+        // adiciona os cursos à lista do aluno
+        aluno.getCursos().addAll(cursos);
+        alunoRepository.save(aluno);
 
-            return alunoCursoRepository.save(alunoCurso);
-        }).collect(Collectors.toSet());
-
-        List<CursoResumoDTO> cursosResumo = newAlunoCursos
-                .stream()
-                .map(alunoCurso -> new CursoResumoDTO(alunoCurso.getCurso().getId(), alunoCurso.getCurso().getTitulo()))
+        List<CursoResumoDTO> cursosResumo = cursos.stream()
+                .map(curso -> new CursoResumoDTO(curso.getId(), curso.getTitulo()))
                 .toList();
 
         return new MatriculaResponseDTO(
@@ -200,6 +184,7 @@ public class AlunoService {
                 cursosResumo
         );
     }
+
 
     @Transactional
     public List<MatriculaEmLoteResponse> importarEMatricularAlunos(MultipartFile file, Long cursoId) {
@@ -251,7 +236,7 @@ public class AlunoService {
                         usuarioService.adicionarFotoDePerfilPadrao(aluno);
 
                         // Envia e-mail de boas-vindas
-                        String urlLogin = "https://flyeducacao.org";
+
                         String assunto = "Sua conta FlyFlix está pronta!";
                         String corpo = String.format(
                                 "<p>Oi, %s!</p>" +
@@ -363,18 +348,5 @@ public class AlunoService {
                 .map(AlunoResumoDTO::new)
                 .collect(Collectors.toList());
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
