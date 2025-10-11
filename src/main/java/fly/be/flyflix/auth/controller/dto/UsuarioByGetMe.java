@@ -2,6 +2,7 @@ package fly.be.flyflix.auth.controller.dto;
 
 import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
+import fly.be.flyflix.conteudo.entity.Curso;
 import java.util.List;
 
 /**
@@ -22,8 +23,8 @@ public record UsuarioByGetMe(
 
         if (usuario instanceof Aluno aluno) {
             cursoIds = aluno.getCursos().stream()
-                    .map(alunoCurso -> alunoCurso.getCurso().getId())
-                    .toList(); // retorna lista vazia se não tiver cursos
+                    .map(Curso::getId) // acessa direto o id do curso
+                    .toList();
         }
 
         return new UsuarioByGetMe(
@@ -34,4 +35,5 @@ public record UsuarioByGetMe(
                 cursoIds
         );
     }
+
 }
