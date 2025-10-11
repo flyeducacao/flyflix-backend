@@ -86,4 +86,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<DefaultMessageError> handlerUnprocessableEntityException(UnprocessableEntityException e) {
+        DefaultMessageError error = new DefaultMessageError(HttpStatus.UNPROCESSABLE_ENTITY.value(), e.getReason());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
 }
