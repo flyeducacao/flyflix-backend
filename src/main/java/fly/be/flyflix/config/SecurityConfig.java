@@ -6,8 +6,6 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.auth.service.CustomUserDetailsService;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +15,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -44,8 +41,6 @@ import java.util.Base64;
 import java.util.List;
 
 @Configuration
-@Getter
-@Setter
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
@@ -57,25 +52,35 @@ public class SecurityConfig {
     private String privateKeyPathOrContent;
 
     private boolean isPEMContent(String value) {
-        return value.contains("BEGIN");
+        return value != null && value.contains("BEGIN");
+    }
+
+    private String loadKeyContent(String pathOrContent, String which) throws Exception {
+        if (pathOrContent == null || pathOrContent.isBlank()) {
+            throw new IllegalStateException("Chave JWT (" + which + ") não configurada. Verifique as propriedades jwt.public.key / jwt.private.key.");
+        }
+
+        if (isPEMContent(pathOrContent)) {
+            return pathOrContent;
+        }
+
+        // permitimos "classpath:arquivo.pem" ou apenas "arquivo.pem"
+        String resourcePath = pathOrContent.replaceFirst("^classpath:", "");
+        Resource resource = new ClassPathResource(resourcePath);
+        if (!resource.exists()) {
+            throw new IllegalStateException("Arquivo de chave JWT não encontrado no classpath: " + resourcePath);
+        }
+        return new String(resource.getInputStream().readAllBytes());
     }
 
     @Bean
     public RSAPublicKey rsaPublicKey() throws Exception {
-        String key;
-
-        if (isPEMContent(publicKeyPathOrContent)) {
-            key = publicKeyPathOrContent;
-        } else {
-            Resource resource = new ClassPathResource(publicKeyPathOrContent.replace("classpath:", ""));
-            key = new String(resource.getInputStream().readAllBytes());
-        }
-
+        String key = loadKeyContent(publicKeyPathOrContent, "public");
         key = key
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\\\n", "")  // se vier com \n
-                .replaceAll("\\s", "");   // remove espaços e quebras reais
+                .replaceAll("\\r?\\n", "")
+                .replaceAll("\\s", "");
 
         byte[] decoded = Base64.getDecoder().decode(key);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
@@ -84,29 +89,17 @@ public class SecurityConfig {
 
     @Bean
     public RSAPrivateKey rsaPrivateKey() throws Exception {
-        String key;
-
-        if (isPEMContent(privateKeyPathOrContent)) {
-            key = privateKeyPathOrContent;
-        } else {
-            Resource resource = new ClassPathResource(privateKeyPathOrContent.replace("classpath:", ""));
-            key = new String(resource.getInputStream().readAllBytes());
-        }
-
+        String key = loadKeyContent(privateKeyPathOrContent, "private");
         key = key
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\\\n", "")
+                .replaceAll("\\r?\\n", "")
                 .replaceAll("\\s", "");
 
         byte[] decoded = Base64.getDecoder().decode(key);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
         return (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
-
-
-
-
 
     @Bean
     public JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
@@ -124,15 +117,15 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔐 JWT converter que usa "roles" como autoridade
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix(""); // remove "SCOPE_" se estiver vindo com "ROLE_"
+        grantedAuthoritiesConverter.setAuthorityPrefix("");
         grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
-        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return jwtAuthenticationConverter;
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        return converter;
     }
 
     @Bean
@@ -146,7 +139,8 @@ public class SecurityConfig {
                             "https://flyflix.onrender.com",
                             "http://localhost:3000",
                             "http://127.0.0.1:5173",
-                            "https://flyrecursos.vercel.app"));
+                            "https://flyrecursos.vercel.app"
+                    ));
                     config.setAllowedMethods(List.of("*"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
@@ -158,18 +152,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/esqueci-senha", "/resetar-senha").permitAll()
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/esqueci-senha", "/resetar-senha").permitAll()
                         .requestMatchers(HttpMethod.POST, "/alunos").hasAuthority("ROLE_ADMIN")
-
                         .requestMatchers(HttpMethod.GET, "/teste-auth").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        )
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 );
+
         return http.build();
     }
 
@@ -179,6 +171,7 @@ public class SecurityConfig {
     ) {
         return new ProviderManager(authenticationProvider);
     }
+
     @Bean
     public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
         return new CustomUserDetailsService(usuarioRepository);
