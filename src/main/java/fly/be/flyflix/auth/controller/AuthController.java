@@ -86,11 +86,21 @@ private String frontendUrl;
         return senha != null && senha.matches(regex);
     }
 
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
         LoginResponse response = tokenService.login(loginRequest);
-
         return ResponseEntity.ok(response);
     }
-
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@RequestParam("refreshToken") String refreshToken) {
+        LoginResponse response = tokenService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.replace("Bearer ", "");
+        tokenService.revokeRefreshToken(token);
+        return ResponseEntity.ok("Logout realizado com sucesso.");
+    }
 }
