@@ -3,14 +3,8 @@ package fly.be.flyflix.conteudo.controller;
 import fly.be.flyflix.conteudo.dto.curso.AtualizacaoCurso;
 import fly.be.flyflix.conteudo.dto.curso.CadastroCurso;
 import fly.be.flyflix.conteudo.dto.curso.DetalhamentoCurso;
-import fly.be.flyflix.conteudo.entity.Curso;
-import fly.be.flyflix.conteudo.entity.CursoModulo;
-import fly.be.flyflix.conteudo.entity.Modulo;
-import fly.be.flyflix.conteudo.repository.CursoModuloRepository;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
-import fly.be.flyflix.conteudo.repository.ModuloRepository;
+import fly.be.flyflix.conteudo.dto.modulo.ModuloByListarPorCursoComOrdem;
 import fly.be.flyflix.conteudo.service.CursoService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,115 +13,85 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.util.Optional;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cursos")
 public class CursoController {
     @Autowired
-    private CursoModuloRepository cursoModuloRepository;
-    @Autowired
-    private CursoRepository cursoRepository;
-    @Autowired
-    private ModuloRepository moduloRepository;
-    @Autowired
     private CursoService cursoService;
 
     @PostMapping
-    public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados) {
-        try {
-            Curso curso = cursoService.cadastrarCurso(dados);
-            return ResponseEntity
-                    .created(URI.create("/api/cursos/" + curso.getId()))
-                    .body(new DetalhamentoCurso(curso));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<DetalhamentoCurso> cadastrar(@RequestBody @Valid CadastroCurso dados, Authentication authentication) {
+        Long requestingUserId = Long.valueOf(authentication.getName());
+
+        DetalhamentoCurso response = cursoService.cadastrarCurso(dados, requestingUserId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @GetMapping
-    public Page<DetalhamentoCurso> listar(@PageableDefault(size = 10, sort = "titulo") Pageable paginacao) {
-        return cursoRepository.findAll(paginacao).map(DetalhamentoCurso::new);
+    public ResponseEntity<Page<DetalhamentoCurso>> listar(@PageableDefault(size = 10, sort = "titulo") Pageable paginacao) {
+        Page<DetalhamentoCurso> response = cursoService.listar(paginacao);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
+    @Transactional
     public ResponseEntity<DetalhamentoCurso> detalhar(@PathVariable Long id) {
-        Optional<Curso> optional = cursoRepository.findById(id);
-        return optional.map(curso -> ResponseEntity.ok(new DetalhamentoCurso(curso)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        DetalhamentoCurso response = cursoService.detalhar(id);
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DetalhamentoCurso> atualizar(@PathVariable Long id, @RequestBody @Valid AtualizacaoCurso dados) {
-        Optional<Curso> optional = cursoRepository.findById(id);
-        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+        cursoService.atualizarCurso(id, dados);
 
-        try {
-            Curso curso = optional.get();
-            curso.setTitulo(dados.titulo());
-            curso.setDescricao(dados.descricao());
-            curso.setImagemCapa(dados.imagemCapa());
-
-            return ResponseEntity.ok(new DetalhamentoCurso(curso));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> remover(@PathVariable Long id) {
-        if (!cursoRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        cursoRepository.deleteById(id);
+        cursoService.remover(id);
+
         return ResponseEntity.noContent().build();
     }
 
-    // ✅ NOVO ENDPOINT: adicionar módulo a curso
-
     @PostMapping("/{cursoId}/modulos/{moduloId}")
     public ResponseEntity<?> adicionarModulo(@PathVariable Long cursoId, @PathVariable Long moduloId) {
-        try {
-            Curso cursoAtualizado = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
-            return ResponseEntity.ok(new DetalhamentoCurso(cursoAtualizado));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro inesperado");
-        }
+        DetalhamentoCurso response = cursoService.adicionarModuloAoCurso(cursoId, moduloId);
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{idCurso}/modulos/{idModulo}")
-    @Transactional
-    public ResponseEntity<Void> adicionarModuloAoCurso(
+    public ResponseEntity<String> adicionarOuAlterarOrdemModuloAoCurso(
             @PathVariable Long idCurso,
             @PathVariable Long idModulo,
-            @RequestParam(required = false) Integer ordem // ordem opcional, pode definir aqui
+            @RequestParam(required = false) Integer ordem
     ) {
-        Curso curso = cursoRepository.findById(idCurso)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+        cursoService.adicionarOuAtualizarModuloNoCurso(idCurso, idModulo, ordem);
 
-        Modulo modulo = moduloRepository.findById(idModulo)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
-
-        // Verificar se já existe associação para evitar duplicidade
-        boolean existe = cursoModuloRepository.existsByCursoAndModulo(curso, modulo);
-        if (existe) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); // ou outro tratamento
-        }
-
-        // Definir uma ordem padrão, se não informada
-        if (ordem == null) {
-            ordem = 1; // ou lógica para pegar última ordem + 1
-        }
-
-        CursoModulo cursoModulo = new CursoModulo(curso, modulo, ordem);
-        cursoModuloRepository.save(cursoModulo);
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Módulo adicionado ou ordem atualizada com sucesso.");
     }
 
+    @GetMapping("/{id}/modulos")
+    public ResponseEntity<List<ModuloByListarPorCursoComOrdem>> listarModulosPorCurso(@PathVariable Long id) {
+        List<ModuloByListarPorCursoComOrdem> resposta = cursoService.listarModulosPorCursoComOrdem(id);
+
+        return ResponseEntity.ok(resposta);
+    }
+
+    @DeleteMapping("/{idCurso}/modulos/{idModulo}")
+    public ResponseEntity<String> removerModuloDoCurso(@PathVariable Long idCurso, @PathVariable Long idModulo) {
+        cursoService.removerModulo(idCurso, idModulo);
+
+        return ResponseEntity.noContent().build();
+    }
 }

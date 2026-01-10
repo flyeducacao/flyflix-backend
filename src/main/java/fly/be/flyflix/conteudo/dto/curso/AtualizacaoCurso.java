@@ -1,8 +1,8 @@
 package fly.be.flyflix.conteudo.dto.curso;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record AtualizacaoCurso(
-        String titulo,
-        String descricao,
-        String imagemCapa,
-        Long autorId  // permite atualizar o autor do curso
+        @NotBlank(message = "O campo 'titulo' é obrigatório'")
+        String titulo
 ) {}

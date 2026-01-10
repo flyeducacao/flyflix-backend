@@ -25,7 +25,6 @@ public class DefaultAdminUserConfig implements CommandLineRunner {
         final String adminCpf = "68669859432";
         System.out.println("Buscando admin no banco...");
         var adminOptional = adminRepository.findByEmail(adminEmail);
-        //var adminOptional = adminRepository.findByEmail("admin@admin.com");
         System.out.println("Resultado: " + adminOptional);
         adminOptional.ifPresentOrElse(
                 admin -> System.out.println("Admin já existe no banco"),
@@ -33,8 +32,10 @@ public class DefaultAdminUserConfig implements CommandLineRunner {
                     Admin admin = new Admin();
                     admin.setNome("Admin");
                     admin.setEmail(adminEmail);
+
                     admin.setCpf(adminCpf);
-                    admin.setSenha(passwordEncoder.encode("FlyAdmin")); // senha padrão
+
+                    admin.setSenha(passwordEncoder.encode("FlyAdmin*8")); // senha padrão
                     admin.setAtivo(true);
                     admin.setRole(Role.ADMIN);
                     //admin.setDataNascimento(LocalDate.of(2022, 1, 17));

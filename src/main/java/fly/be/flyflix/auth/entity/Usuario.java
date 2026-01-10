@@ -3,11 +3,14 @@ import fly.be.flyflix.auth.controller.dto.LoginRequest;
 import fly.be.flyflix.auth.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SourceType;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -41,8 +44,15 @@ public abstract class Usuario implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Column(name = "data_cadastro", columnDefinition = "DATE")
+    @CreationTimestamp(source = SourceType.DB)
+    private LocalDate dataCadastro;
 
-        @Override
+    @Column(name = "foto_perfil")
+    private String fotoPerfilUrl;
+
+
+    @Override
         public Collection<? extends GrantedAuthority> getAuthorities() {
             return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
         }

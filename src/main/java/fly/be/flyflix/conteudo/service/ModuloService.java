@@ -3,14 +3,19 @@ package fly.be.flyflix.conteudo.service;
 import fly.be.flyflix.conteudo.dto.modulo.AtualizacaoModulo;
 import fly.be.flyflix.conteudo.dto.modulo.CadastroModulo;
 import fly.be.flyflix.conteudo.dto.modulo.DetalhamentoModulo;
+import fly.be.flyflix.conteudo.entity.Curso;
 import fly.be.flyflix.conteudo.entity.Modulo;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
+import fly.be.flyflix.conteudo.exceptions.NotFoundException;
 import fly.be.flyflix.conteudo.repository.ModuloRepository;
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class ModuloService {
@@ -18,37 +23,57 @@ public class ModuloService {
     @Autowired
     private ModuloRepository moduloRepository;
 
-    @Transactional
-    public Modulo cadastrar(CadastroModulo dados) {
+    public DetalhamentoModulo cadastrar(CadastroModulo dados) {
+        String tituloNormalizado = dados.titulo().trim();
+
+        boolean existe = moduloRepository.existsByTituloIgnoreCase(tituloNormalizado);
+        if (existe) {
+            throw new BadRequestException("Já existe um módulo com o título '" + tituloNormalizado + "'");
+        }
+
         Modulo modulo = new Modulo();
-        modulo.setTitulo(dados.titulo());
-        // A ordem será definida ao associar com um curso em CursoModulo
-        return moduloRepository.save(modulo);
+        modulo.setTitulo(tituloNormalizado);
+
+        try {
+            Modulo response = moduloRepository.save(modulo);
+            return new DetalhamentoModulo(response);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException("Já existe um módulo com o título '" + tituloNormalizado + "'");
+        }
     }
 
-    @Transactional
-    public Modulo atualizar(AtualizacaoModulo dados) {
-        Modulo modulo = moduloRepository.findById(dados.id())
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
 
+
+    public void atualizar(AtualizacaoModulo dados) {
+        Modulo modulo = findByIdOrThrowsNotFoundException(dados.id());
         modulo.setTitulo(dados.titulo());
-        // A ordem será atualizada no CursoModulo
-        return modulo;
+
+        moduloRepository.save(modulo);
     }
 
-    @Transactional
     public void remover(Long id) {
         moduloRepository.deleteById(id);
     }
 
-    public Page<DetalhamentoModulo> listar(Pageable paginacao) {
-        return moduloRepository.findAll(paginacao)
-                .map(DetalhamentoModulo::new);
+    public List<DetalhamentoModulo> listar() {
+        return moduloRepository.findAll()
+                .stream()
+                .map(DetalhamentoModulo::new)
+                .toList();
     }
 
+    @Transactional
     public DetalhamentoModulo detalhar(Long id) {
-        Modulo modulo = moduloRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Módulo não encontrado"));
+        Modulo modulo = findByIdOrThrowsNotFoundException(id);
         return new DetalhamentoModulo(modulo);
+    }
+
+    public Modulo findByIdOrThrowsNotFoundException(Long id) {
+        return moduloRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Módulo com id '%s' não encontrado".formatted(id)));
+    }
+
+    public List<Modulo> listarPorCurso(Curso curso) {
+        return moduloRepository.findByCursoId(curso.getId());
     }
 }
