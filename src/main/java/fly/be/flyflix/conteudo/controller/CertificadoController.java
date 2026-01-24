@@ -1,5 +1,6 @@
 package fly.be.flyflix.conteudo.controller;
 
+import fly.be.flyflix.conteudo.dto.certificado.CertificadoElegibilidadeDTO;
 import fly.be.flyflix.conteudo.service.CertificadoService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,18 +19,19 @@ public class CertificadoController {
     }
 
     @GetMapping("/eligibilidade")
-    public ResponseEntity<String> verificarElegibilidade(
+    public ResponseEntity<CertificadoElegibilidadeDTO> verificarElegibilidade(
             @RequestParam Long alunoId,
             @RequestParam Long cursoId) {
 
-        boolean podeEmitir = certificadoService.podeEmitirCertificado(alunoId, cursoId);
+        CertificadoElegibilidadeDTO dto = certificadoService.verificarElegibilidade(alunoId, cursoId);
 
-        if (podeEmitir) {
-            return ResponseEntity.ok("Elegível para certificado");
+        if (dto.isElegivel()) {
+            return ResponseEntity.ok(dto);
         } else {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Requisitos não cumpridos");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(dto);
         }
     }
+
 
     @GetMapping("/download")
     public ResponseEntity<byte[]> baixarCertificado(

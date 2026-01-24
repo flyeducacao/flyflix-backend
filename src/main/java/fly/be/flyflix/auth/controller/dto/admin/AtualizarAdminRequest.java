@@ -4,12 +4,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDate;
-
 public record AtualizarAdminRequest(
-        @NotNull Long id,
-        @NotBlank String nome,
-        @NotBlank @Email String email,
-        LocalDate dataNascimento,
-        boolean ativo
+        @NotNull(message = "O campo 'id' é obrigatório'")
+        Long id,
+        @NotBlank(message = "O campo 'nome' é obrigatório'")
+        String nome,
+        @Email(message = "Email inválido")
+        @NotBlank(message = "O campo 'email' é obrigatório'")
+        String email,
+        @NotBlank(message = "O campo 'cpf' é obrigatório'")
+        String cpf
 ) {}

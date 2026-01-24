@@ -1,10 +1,9 @@
 package fly.be.flyflix.conteudo.dto.modulo;
 
-import fly.be.flyflix.conteudo.dto.aula.CadastroAula;
-import java.util.List;
 
+import jakarta.validation.constraints.NotBlank;
 
 public record CadastroModulo(
+        @NotBlank(message = "O campo 'titulo' é obrigatório")
         String titulo
-
 ) {}
