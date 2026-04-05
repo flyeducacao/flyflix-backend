@@ -6,6 +6,8 @@ import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.enums.PerfilAluno;
 import fly.be.flyflix.auth.repository.AlunoRepository;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +21,8 @@ import java.util.UUID;
 
 @Service
 public class AlunoService {
+
+    private static final Logger log = LoggerFactory.getLogger(AlunoService.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -35,11 +39,15 @@ public class AlunoService {
     public ResponseEntity<Map<String, Object>> cadastrarAluno(CadastroAluno dados) {
         Map<String, Object> response = new HashMap<>();
 
+        log.info("Iniciando cadastro de aluno com email='{}' e cpf='{}'", dados.email(), dados.cpf());
+
         if (usuarioRepository.existsByEmail(dados.email())) {
+            log.warn("Cadastro de aluno bloqueado: email já existe ('{}')", dados.email());
             response.put("error", "Email já está em uso");
             return ResponseEntity.badRequest().body(response);
         }
         if (usuarioRepository.existsByCpf(dados.cpf())) {
+            log.warn("Cadastro de aluno bloqueado: cpf já existe ('{}')", dados.cpf());
             response.put("error", "CPF já está cadastrado");
             return ResponseEntity.badRequest().body(response);
         }
@@ -58,6 +66,7 @@ public class AlunoService {
         aluno.setSenha(passwordEncoder.encode(senhaTemp));
 
         usuarioRepository.save(aluno);
+        log.info("Aluno salvo com sucesso. id='{}', email='{}'", aluno.getId(), aluno.getEmail());
 
         String assunto = "Sua senha temporária para FlyFlix";
         String corpo = String.format(
@@ -70,10 +79,15 @@ public class AlunoService {
                 senhaTemp
         );
 
-        emailService.enviarEmail(dados.email(), assunto, corpo);
+        try {
+            emailService.enviarEmail(dados.email(), assunto, corpo);
+            response.put("message", "Aluno cadastrado com sucesso. Senha enviada por email.");
+        } catch (Exception e) {
+            log.error("Aluno criado, mas falhou envio de email para '{}': {}", dados.email(), e.getMessage(), e);
+            response.put("message", "Aluno cadastrado com sucesso, mas o email não foi enviado.");
+            response.put("warning", "Falha no envio de email. Verifique as configurações SMTP/logs.");
+        }
 
-
-        response.put("message", "Aluno cadastrado com sucesso. Senha enviada por email.");
         return ResponseEntity.ok(response);
     }
 
