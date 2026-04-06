@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AlunoService {
+    private static final Logger log = LoggerFactory.getLogger(AlunoService.class);
+
     @Autowired
     private UsuarioRepository usuarioRepository;
     @Autowired
@@ -47,6 +49,8 @@ public class AlunoService {
 
     String urlLogin = "https://flyeducacao.org";
     public void cadastrarAluno(CadastroAluno dados) {
+        log.info("Iniciando cadastro de aluno com email='{}' e cpf='{}'", dados.email(), dados.cpf());
+
         usuarioService.assertEmailIsNotRegistered(dados.email());
         usuarioService.assertCpfDoesNotBelongsToAnotherUser(dados.cpf());
         CpfValidator.validarCpf(dados.cpf());
@@ -67,6 +71,7 @@ public class AlunoService {
 
         usuarioService.adicionarFotoDePerfilPadrao(aluno);
         alunoRepository.save(aluno);
+        log.info("Aluno salvo com sucesso. id='{}', email='{}'", aluno.getId(), aluno.getEmail());
 
 
         //String urlLogin = frontendUrl + loginPath;
@@ -86,7 +91,13 @@ public class AlunoService {
                 urlLogin
         );
 
-        emailService.enviarEmail(dados.email(), assunto, corpo);
+        try {
+            emailService.enviarEmail(dados.email(), assunto, corpo);
+            log.info("Email de boas-vindas enviado com sucesso para '{}'", dados.email());
+        } catch (Exception e) {
+            log.error("Aluno criado, mas falhou envio de email para '{}': {}", dados.email(), e.getMessage(), e);
+            log.warn("Aluno cadastrado com sucesso, mas o email não foi enviado para '{}'", dados.email());
+        }
     }
 
     public void assertDataNascimentoValida(LocalDate dataNascimento) {
