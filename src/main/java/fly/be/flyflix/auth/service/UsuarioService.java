@@ -3,7 +3,10 @@ package fly.be.flyflix.auth.service;
 import fly.be.flyflix.auth.controller.dto.AdicionarFotoDePerfilDto;
 import fly.be.flyflix.auth.controller.dto.AlteraFotoPerfilDto;
 import fly.be.flyflix.auth.controller.dto.GetFotoPerfilDto;
+import fly.be.flyflix.auth.controller.dto.MensagemRespostaDTO;
 import fly.be.flyflix.auth.controller.dto.UsuarioByGetMe;
+import fly.be.flyflix.auth.entity.Admin;
+import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
 import fly.be.flyflix.auth.repository.UsuarioRepository;
 import fly.be.flyflix.conteudo.exceptions.BadRequestException;
@@ -103,7 +106,20 @@ public class UsuarioService {
     }
 
     public void throwsEmailJaCadastradoException(Usuario usuario) {
-        throw new BadRequestException("O email '%s' já está cadastrado".formatted(usuario.getEmail()));
+        String status = "DESCONHECIDO";
+
+        if (usuario instanceof Aluno aluno) {
+            status = Boolean.TRUE.equals(aluno.getAtivo()) ? "ATIVO" : "INATIVO";
+        } else if (usuario instanceof Admin admin) {
+            status = Boolean.TRUE.equals(admin.getAtivo()) ? "ATIVO" : "INATIVO";
+        }
+
+        String tipoUsuario = usuario.getClass().getSimpleName().toUpperCase();
+
+        throw new BadRequestException(
+                "O email '%s' já está cadastrado. tipo: %s, status: %s"
+                        .formatted(usuario.getEmail(), tipoUsuario, status)
+        );
     }
 
     public void atualizarFoto(Long id, AlteraFotoPerfilDto request) {
@@ -112,5 +128,57 @@ public class UsuarioService {
         usuario.setFotoPerfilUrl(request.url());
 
         usuarioRepository.save(usuario);
+    }
+
+    public MensagemRespostaDTO reativarUsuarioPorEmail(String email) {
+        String emailSanitizado = email.trim();
+
+        Usuario usuario = usuarioRepository.findByEmail(emailSanitizado)
+                .orElseThrow(() -> new NotFoundException("Usuário com email '%s' não encontrado".formatted(emailSanitizado)));
+
+        if (usuario instanceof Aluno aluno) {
+            if (Boolean.TRUE.equals(aluno.getAtivo())) {
+                return new MensagemRespostaDTO(
+                        "O email '%s' já está cadastrado. tipo: ALUNO, status: ATIVO".formatted(aluno.getEmail()),
+                        true,
+                        200,
+                        null
+                );
+            }
+
+            aluno.setAtivo(true);
+            usuarioRepository.save(aluno);
+            return new MensagemRespostaDTO(
+                    "Usuário reativado com sucesso. email: '%s', tipo: ALUNO, status: ATIVO".formatted(aluno.getEmail()),
+                    true,
+                    200,
+                    null
+            );
+        }
+
+        if (usuario instanceof Admin admin) {
+            if (Boolean.TRUE.equals(admin.getAtivo())) {
+                return new MensagemRespostaDTO(
+                        "O email '%s' já está cadastrado. tipo: ADMIN, status: ATIVO".formatted(admin.getEmail()),
+                        true,
+                        200,
+                        null
+                );
+            }
+
+            admin.setAtivo(true);
+            usuarioRepository.save(admin);
+            return new MensagemRespostaDTO(
+                    "Usuário reativado com sucesso. email: '%s', tipo: ADMIN, status: ATIVO".formatted(admin.getEmail()),
+                    true,
+                    200,
+                    null
+            );
+        }
+
+        throw new BadRequestException(
+                "Tipo de usuário '%s' não suporta reativação por este endpoint"
+                        .formatted(usuario.getClass().getSimpleName())
+        );
     }
 }

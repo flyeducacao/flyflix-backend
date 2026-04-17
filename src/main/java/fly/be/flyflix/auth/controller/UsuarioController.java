@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -87,5 +88,32 @@ public class UsuarioController {
                 200,
                 null
         ));
+    }
+
+    @Operation(
+            summary = "Reativa usuário por email",
+            description = "Reativa um usuário inativo (ALUNO ou ADMIN) a partir do email. Endpoint restrito a ADMIN.",
+            requestBody = @RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(example = "{ \"email\": \"usuario@dominio.com\" }")
+                    )
+            ),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Usuário já ativo ou reativado com sucesso."),
+                    @ApiResponse(responseCode = "400", description = "Email inválido ou tipo de usuário não suportado."),
+                    @ApiResponse(responseCode = "404", description = "Usuário não encontrado para o email informado."),
+                    @ApiResponse(responseCode = "401", description = "Não autenticado."),
+                    @ApiResponse(responseCode = "403", description = "Sem permissão (somente ADMIN).")
+            }
+    )
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/reativar-por-email")
+    public ResponseEntity<MensagemRespostaDTO> reativarPorEmail(
+            @org.springframework.web.bind.annotation.RequestBody @Valid ReativarUsuarioPorEmailRequest request
+    ) {
+        MensagemRespostaDTO response = usuarioService.reativarUsuarioPorEmail(request.email());
+        return ResponseEntity.ok(response);
     }
 }
