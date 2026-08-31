@@ -1,84 +1,93 @@
 package fly.be.flyflix.conteudo.service;
 
-import fly.be.flyflix.auth.repository.AlunoRepository;
-import fly.be.flyflix.conteudo.entity.*;
+import fly.be.flyflix.auth.entity.Aluno;
+import fly.be.flyflix.auth.service.AlunoService;
+import fly.be.flyflix.conteudo.dto.aula.AulaResumoDTO;
+import fly.be.flyflix.conteudo.dto.certificado.CertificadoElegibilidadeDTO;
+import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.entity.ProgressoAluno;
+import fly.be.flyflix.conteudo.exceptions.BadRequestException;
 import fly.be.flyflix.conteudo.repository.AulaRepository;
-import fly.be.flyflix.conteudo.repository.CursoRepository;
 import fly.be.flyflix.conteudo.repository.ProgressoRepository;
-import fly.be.flyflix.conteudo.repository.ResultadoQuizRepository;
-import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class CertificadoService {
-
     private final AulaRepository aulaRepository;
+
     private final ProgressoRepository progressoRepository;
-    private final ResultadoQuizRepository resultadoQuizRepository;
-    private final CursoRepository cursoRepository;
-    private final AlunoRepository alunoRepository;
     private final PdfGenerator pdfGenerator;
+    private static final Logger logger = LoggerFactory.getLogger(ProgressoService.class);
+    private final CursoService cursoService;
+    private final AlunoService alunoService;
 
     public CertificadoService(
-            AulaRepository aulaRepository,
-            ProgressoRepository progressoRepository,
-            ResultadoQuizRepository resultadoQuizRepository,
-            CursoRepository cursoRepository,
-            AlunoRepository alunoRepository,
-            PdfGenerator pdfGenerator
+            AulaRepository aulaRepository, ProgressoRepository progressoRepository,
+            PdfGenerator pdfGenerator,
+            CursoService cursoService, AlunoService alunoService
     ) {
         this.aulaRepository = aulaRepository;
         this.progressoRepository = progressoRepository;
-        this.resultadoQuizRepository = resultadoQuizRepository;
-        this.cursoRepository = cursoRepository;
-        this.alunoRepository = alunoRepository;
         this.pdfGenerator = pdfGenerator;
+        this.cursoService = cursoService;
+        this.alunoService = alunoService;
     }
 
-    public boolean podeEmitirCertificado(Long alunoId, Long cursoId) {
-        Curso curso = cursoRepository.findById(cursoId)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+    public CertificadoElegibilidadeDTO verificarElegibilidade(Long alunoId, Long cursoId) {
+        logger.info("Verificando elegibilidade para certificado - Aluno: {}, Curso: {}", alunoId, cursoId);
 
-        List<CursoModulo> cursoModulos = curso.getCursoModulos();
+        // Buscar todas as aulas do curso como DTOs
 
-        // Buscar progresso do aluno no curso
+        List<AulaResumoDTO> aulasDoCurso = aulaRepository.findAulasResumoByCursoId(cursoId);
+        long totalAulas = aulasDoCurso.size();
+
+        if (totalAulas == 0) {
+            return new CertificadoElegibilidadeDTO(false, "Curso não possui aulas", 0, 0);
+        }
+
+        // Buscar progresso e mapear IDs das aulas assistidas
         List<ProgressoAluno> progresso = progressoRepository.findByAlunoIdAndCursoId(alunoId, cursoId);
+        if (progresso.isEmpty()) {
+            return new CertificadoElegibilidadeDTO(false, "Nenhuma aula assistida", totalAulas, 0);
+        }
 
-        Set<Long> aulasAssistidas = progresso.stream()
+        Set<Long> aulasAssistidasIds = progresso.stream()
                 .filter(ProgressoAluno::isAssistida)
-                .map(ProgressoAluno::getAulaId)
+                .map(p -> p.getAula().getId())
                 .collect(Collectors.toSet());
 
-        boolean todasAssistidas = cursoModulos.stream()
-                .map(CursoModulo::getModulo)
-                .flatMap(modulo -> modulo.getAulas().stream())
-                .allMatch(aula -> aulasAssistidas.contains(aula.getId()));
+        long aulasAssistidas = aulasDoCurso.stream()
+                .filter(aula -> aulasAssistidasIds.contains(aula.getId()))
+                .count();
 
-        boolean notaSuficiente = resultadoQuizRepository.findByAlunoIdAndCursoId(alunoId, cursoId)
-                .map(ResultadoQuiz::getNota)
-                .map(nota -> nota >= 7)
-                .orElse(false);
+        if (aulasAssistidas < totalAulas) {
+            return new CertificadoElegibilidadeDTO(false,
+                    "Faltam aulas para concluir o curso", totalAulas, aulasAssistidas);
+        }
 
-        return todasAssistidas && notaSuficiente;
+        return new CertificadoElegibilidadeDTO(true, "Elegível para certificado", totalAulas, aulasAssistidas);
     }
 
+
+
     public String buscarNomeAluno(Long alunoId) {
-        return alunoRepository.findById(alunoId)
-                .map(aluno -> aluno.getNome())
-                .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado"));
+        Aluno aluno = alunoService.findByIdAndAtivoIsTrueOrThrowsNotFoundException(alunoId);
+
+        return aluno.getNome();
     }
 
     public String buscarTituloCurso(Long cursoId) {
-        return cursoRepository.findById(cursoId)
-                .map(Curso::getTitulo)
-                .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+        Curso curso = cursoService.findByIdOrThrowsNotFoundException(cursoId);
+
+        return curso.getTitulo();
     }
 
     public byte[] gerarCertificado(Long alunoId, Long cursoId) {
@@ -89,8 +98,9 @@ public class CertificadoService {
             return pdfGenerator.gerar("Aluno Simulado", "Curso Simulado de Spring Boot", LocalDate.now());
         }
 
-        if (!podeEmitirCertificado(alunoId, cursoId)) {
-            throw new IllegalStateException("Aluno não qualificado para certificado");
+        CertificadoElegibilidadeDTO elegibilidade = verificarElegibilidade(alunoId, cursoId);
+        if (!elegibilidade.isElegivel()) {
+            throw new BadRequestException("Aluno não qualificado para certificado: " + elegibilidade.getMotivo());
         }
 
         return pdfGenerator.gerar(
@@ -100,4 +110,3 @@ public class CertificadoService {
         );
     }
 }
-

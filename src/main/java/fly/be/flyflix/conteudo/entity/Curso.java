@@ -1,5 +1,8 @@
 package fly.be.flyflix.conteudo.entity;
 
+import com.auth0.jwt.interfaces.Payload;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import fly.be.flyflix.auth.entity.Aluno;
 import fly.be.flyflix.auth.entity.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -7,7 +10,10 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -35,27 +41,62 @@ public class Curso {
     @Column(nullable = false)
     private String titulo;
 
-    @Column(columnDefinition = "TEXT")
-    private String descricao;
-
     @Column(name = "data_publicacao")
     private LocalDate dataPublicacao;
 
-    private String imagemCapa;
+    @Column(name = "data_inicio")
+    private LocalDate dataInicio;
+
+    @Column(name = "data_conclusao")
+    private LocalDate dataConclusao;
+
+    @Column(name = "total_aulas")
+    private int totalAulas;
+
+    @Column(name = "total_horas")
+    private double totalHoras;
+
+    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private Set<CursoModulo> cursoModulos = new HashSet<>();
 
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     @Builder.Default
-    private List<CursoModulo> cursoModulos = new ArrayList<>();
+    private List<ProgressoAluno> progresso = new ArrayList<>();
 
-    // Métodos de negócio usando CursoModulo
-    public void adicionarModulo(Modulo modulo, int ordem) {
-        CursoModulo cursoModulo = new CursoModulo(this, modulo, ordem);
-        cursoModulos.add(cursoModulo);
-        modulo.getCursoModulos().add(cursoModulo);
+    /**
+     * Atualiza os totais de aulas e duração do curso com base nas aulas dos módulos.
+     */
+    public void atualizarTotais() {
+        int totalAulas = 0;
+        int totalMinutos = 0;
+
+        for (CursoModulo cursoModulo : cursoModulos) {
+            Modulo modulo = cursoModulo.getModulo();
+            if (modulo != null && modulo.getAulas() != null) {
+                totalAulas += modulo.getAulas().size();
+                totalMinutos += modulo.getAulas().stream()
+                        .filter(aula -> aula.getDuracaoEstimada() != null)
+                        .mapToInt(Aula::getDuracaoEstimada)
+                        .sum();
+            }
+        }
+
+        this.totalAulas = totalAulas;
+        this.totalHoras = totalMinutos / 60.0;  // divisão com decimal
+    }
+    @ManyToMany(mappedBy = "cursos")
+    private Set<Aluno> alunos = new HashSet<>();
+
+
+
+    @PrePersist
+    @PreUpdate
+    public void onSaveOrUpdate() {
+        atualizarTotais();
     }
 
-    public void removerModulo(Modulo modulo) {
-        cursoModulos.removeIf(cm -> cm.getModulo().equals(modulo));
-        modulo.getCursoModulos().removeIf(cm -> cm.getCurso().equals(this));
-    }
+
+
 }

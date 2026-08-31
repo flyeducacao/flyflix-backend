@@ -1,12 +1,19 @@
 package fly.be.flyflix.auth.entity;
 
-import fly.be.flyflix.auth.enums.PerfilAluno;
-import fly.be.flyflix.auth.enums.Role;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import fly.be.flyflix.conteudo.entity.Curso;
+import fly.be.flyflix.conteudo.entity.ProgressoAluno;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+@Builder
 @Entity
 @Getter
 @Setter
@@ -18,15 +25,22 @@ public class Aluno extends Usuario {
     @Column(name = "data_nascimento", nullable = false)
     private LocalDate dataNascimento;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "perfil_aluno", nullable = false)
-    private PerfilAluno perfilAluno;
-
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    @Column(name = "curso_id")
-    private Long cursoId;
+    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore // evita loops caso serialize
+    @Builder.Default
+    private List<ProgressoAluno> progresso = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "aluno_curso",
+            joinColumns = @JoinColumn(name = "aluno_id"),
+            inverseJoinColumns = @JoinColumn(name = "curso_id")
+    )
+    @Builder.Default
+    private Set<Curso> cursos = new HashSet<>();
 
     public boolean inativar() {
         if (Boolean.TRUE.equals(this.ativo)) {
@@ -43,12 +57,4 @@ public class Aluno extends Usuario {
         }
         return false;
     }
-
-    @PrePersist
-    public void prePersist() {
-        setRole(Role.ALUNO);
-    }
-
-
 }
-

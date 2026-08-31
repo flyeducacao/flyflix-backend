@@ -89,6 +89,10 @@
 			<version>8.0.0</version>
 		</dependency>
 
+
+
+
+
 		<!-- MinIO -->
 		<dependency>
 			<groupId>io.minio</groupId>
@@ -109,6 +113,13 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 			<version>3.3.7</version>
 		</dependency>
+		<!-- Apache POI para leitura de arquivos Excel (.xlsx) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+
 
 		<!-- Lombok -->
 		<dependency>
